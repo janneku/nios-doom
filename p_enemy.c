@@ -26,8 +26,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-
 #include "m_random.h"
 #include "i_system.h"
 
@@ -532,7 +530,7 @@ void A_Look(mobj_t * actor)
 		return;
 
 	// go into chase state
-seeyou:
+      seeyou:
 	if (actor->info->seesound) {
 		int sound;
 
@@ -630,7 +628,7 @@ void A_Chase(mobj_t * actor)
 		return;
 	}
 	// ?
-nomissile:
+      nomissile:
 	// possibly choose another target
 	if (netgame && !actor->threshold && !P_CheckSight(actor, actor->target)) {
 		if (P_LookForPlayers(actor, true))

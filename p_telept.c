@@ -101,10 +101,11 @@ int
 				    || gameversion == exe_chex)
 					thing->z = thing->floorz;
 
-				if (thing->player)
+				if (thing->player) {
 					thing->player->viewz =
 					    thing->z +
 					    thing->player->viewheight;
+				}
 
 				// spawn teleport fog at source and destination
 				fog = P_SpawnMobj(oldx, oldy, oldz, MT_TFOG);
@@ -124,6 +125,11 @@ int
 
 				thing->angle = m->angle;
 				thing->momx = thing->momy = thing->momz = 0;
+				if (thing->player) {
+					thing->player->prevx = m->x;
+					thing->player->prevy = m->y;
+					thing->player->prevan = m->angle;
+				}
 				return 1;
 			}
 		}

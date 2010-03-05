@@ -24,10 +24,7 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <stdlib.h>
 
-#include "deh_main.h"
 #include "doomdef.h"
 
 #include "i_swap.h"
@@ -81,9 +78,9 @@ short screenheightarray[SCREENWIDTH];
 spritedef_t *sprites;
 int numsprites;
 
-spriteframe_t sprtemp[29];
-int maxframe;
-char *spritename;
+static spriteframe_t sprtemp[29];
+static int maxframe;
+static char *spritename;
 
 //
 // R_InstallSpriteLump
@@ -182,7 +179,7 @@ void R_InitSpriteDefs(char **namelist)
 	//  noting the highest frame letter.
 	// Just compare 4 characters as ints
 	for (i = 0; i < numsprites; i++) {
-		spritename = DEH_String(namelist[i]);
+		spritename = namelist[i];
 		memset(sprtemp, -1, sizeof(sprtemp));
 
 		maxframe = -1;
@@ -273,6 +270,8 @@ void R_InitSprites(char **namelist)
 	for (i = 0; i < SCREENWIDTH; i++) {
 		negonearray[i] = -1;
 	}
+
+	memset(vissprites, 0, sizeof(vissprites));
 
 	R_InitSpriteDefs(namelist);
 }
@@ -381,6 +380,8 @@ void R_DrawVisSprite(vissprite_t * vis, int x1, int x2) {
 
 	for (dc_x = vis->x1; dc_x <= vis->x2; dc_x++, frac += vis->xiscale) {
 		texturecolumn = frac >> FRACBITS;
+		if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
+			continue;
 #ifdef RANGECHECK
 		if (texturecolumn < 0 || texturecolumn >= SHORT(patch->width))
 			I_Error("R_DrawSpriteRange: bad texturecolumn");
@@ -427,6 +428,9 @@ void R_ProjectSprite(mobj_t * thing)
 
 	angle_t ang;
 	fixed_t iscale;
+
+	if (thing->player == viewplayer)
+		return;
 
 	// transform the origin point
 	tr_x = thing->x - viewx;

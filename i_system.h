@@ -33,28 +33,12 @@
 // Called by DoomMain.
 void I_Init(void);
 
-// Called by startup code
-// to get the ammount of memory to malloc
-// for the zone management.
-byte *I_ZoneBase(int *size);
+// Called by IO functions when input is detected.
+void I_PostEvent(event_t * ev);
 
-boolean I_ConsoleStdout(void);
+// Read an event from the event queue
 
-// Called by D_DoomLoop,
-// called before processing any tics in a frame
-// (just after displaying a frame).
-// Time consuming syncronous operations
-// are performed here (joystick reading).
-// Can call D_PostEvent.
-//
-void I_StartFrame(void);
-
-//
-// Called by D_DoomLoop,
-// called before processing each tic in a frame.
-// Quick syncronous operations are performed here.
-// Can call D_PostEvent.
-void I_StartTic(void);
+boolean I_PopEvent(event_t * ev);
 
 // Asynchronous interrupt functions should maintain private queues
 // that are read by the synchronous functions
@@ -70,12 +54,10 @@ ticcmd_t *I_BaseTiccmd(void);
 // Clean exit, displays sell blurb.
 void I_Quit(void);
 
-// Allocates from low memory under dos,
-// just mallocs under unix
-byte *I_AllocLow(int length);
-
 void I_Tactile(int on, int off, int total);
 
 void I_Error(char *error, ...);
+
+void I_Print(const char *s);
 
 #endif

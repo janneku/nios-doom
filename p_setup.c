@@ -25,11 +25,8 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <math.h>
-
 #include "z_zone.h"
 
-#include "deh_main.h"
 #include "i_swap.h"
 #include "m_bbox.h"
 
@@ -598,13 +595,7 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill) {
 	// Make sure all sounds are stopped before Z_FreeTags.
 	S_Start();
 
-#if 0				// UNUSED
-	if (debugfile) {
-		Z_FreeTags(PU_LEVEL, INT_MAX);
-		Z_FileDumpHeap(debugfile);
-	} else
-#endif
-		Z_FreeTags(PU_LEVEL, PU_PURGELEVEL - 1);
+	Z_FreeTags(PU_LEVEL, PU_PURGELEVEL - 1);
 
 	// UNUSED W_Profile ();
 	P_InitThinkers();
@@ -612,9 +603,9 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill) {
 	// find map name
 	if (gamemode == commercial) {
 		if (map < 10)
-			sprintf(lumpname, DEH_String("map0%i"), map);
+			format_number(lumpname, "map0%i", map, 10);
 		else
-			sprintf(lumpname, DEH_String("map%i"), map);
+			format_number(lumpname, "map%i", map, 10);
 	} else {
 		lumpname[0] = 'E';
 		lumpname[1] = '0' + episode;
@@ -641,7 +632,6 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill) {
 	rejectmatrix = W_CacheLumpNum(lumpnum + ML_REJECT, PU_LEVEL);
 	P_GroupLines();
 
-	bodyqueslot = 0;
 	deathmatch_p = deathmatchstarts;
 	P_LoadThings(lumpnum + ML_THINGS);
 
@@ -667,7 +657,7 @@ void P_SetupLevel(int episode, int map, int playermask, skill_t skill) {
 	if (precache)
 		R_PrecacheLevel();
 
-	//printf ("free memory: 0x%x\n", Z_FreeMemory());
+	//I_Print ("free memory: 0x%x\n", Z_FreeMemory());
 
 }
 

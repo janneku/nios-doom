@@ -87,16 +87,19 @@ void Z_ClearZone(memzone_t * zone)
 	block->size = zone->size - sizeof(memzone_t);
 }
 
+// memory for zone
+
+static uint32_t zone_memory[1700 * 1024];
+
 //
 // Z_Init
 //
 void Z_Init(void)
 {
 	memblock_t *block;
-	int size;
 
-	mainzone = (memzone_t *) I_ZoneBase(&size);
-	mainzone->size = size;
+	mainzone = (memzone_t *) zone_memory;
+	mainzone->size = sizeof(zone_memory);
 
 	// set the entire zone to one free block
 	mainzone->blocklist.next =
@@ -175,7 +178,16 @@ void *Z_Malloc(int size, int tag, void *user) {
 	memblock_t *rover;
 	memblock_t *newblock;
 	memblock_t *base;
+	char buf[15];
 	void *result;
+
+	if (size > sizeof(zone_memory)) {
+		number_str(buf, size, 10);
+		I_Print("Trying to allocate ");
+		I_Print(buf);
+		I_Print(" bytes.\n");
+		I_Error("Z_Malloc: huge allocation");
+	}
 
 	size = (size + 3) & ~3;
 
@@ -200,8 +212,11 @@ void *Z_Malloc(int size, int tag, void *user) {
 	do {
 		if (rover == start) {
 			// scanned all the way around the list
-			I_Error("Z_Malloc: failed on allocation of %i bytes",
-				size);
+			number_str(buf, size, 10);
+			I_Print("Trying to allocate ");
+			I_Print(buf);
+			I_Print(" bytes.\n");
+			I_Error("Z_Malloc: OUT OF MEMORY");
 		}
 
 		if (rover->tag != PU_FREE) {
@@ -279,71 +294,6 @@ void Z_FreeTags(int lowtag, int hightag) {
 
 		if (block->tag >= lowtag && block->tag <= hightag)
 			Z_Free((byte *) block + sizeof(memblock_t));
-	}
-}
-
-//
-// Z_DumpHeap
-// Note: TFileDumpHeap( stdout ) ?
-//
-void Z_DumpHeap(int lowtag, int hightag) {
-	memblock_t *block;
-
-	printf("zone size: %i  location: %p\n", mainzone->size, mainzone);
-
-	printf("tag range: %i to %i\n", lowtag, hightag);
-
-	for (block = mainzone->blocklist.next;; block = block->next) {
-		if (block->tag >= lowtag && block->tag <= hightag)
-			printf("block:%p    size:%7i    user:%p    tag:%3i\n",
-			       block, block->size, block->user, block->tag);
-
-		if (block->next == &mainzone->blocklist) {
-			// all blocks have been hit
-			break;
-		}
-
-		if ((byte *) block + block->size != (byte *) block->next)
-			printf
-			    ("ERROR: block size does not touch the next block\n");
-
-		if (block->next->prev != block)
-			printf
-			    ("ERROR: next block doesn't have proper back link\n");
-
-		if (block->tag == PU_FREE && block->next->tag == PU_FREE)
-			printf("ERROR: two consecutive free blocks\n");
-	}
-}
-
-//
-// Z_FileDumpHeap
-//
-void Z_FileDumpHeap(FILE * f)
-{
-	memblock_t *block;
-
-	fprintf(f, "zone size: %i  location: %p\n", mainzone->size, mainzone);
-
-	for (block = mainzone->blocklist.next;; block = block->next) {
-		fprintf(f, "block:%p    size:%7i    user:%p    tag:%3i\n",
-			block, block->size, block->user, block->tag);
-
-		if (block->next == &mainzone->blocklist) {
-			// all blocks have been hit
-			break;
-		}
-
-		if ((byte *) block + block->size != (byte *) block->next)
-			fprintf(f,
-				"ERROR: block size does not touch the next block\n");
-
-		if (block->next->prev != block)
-			fprintf(f,
-				"ERROR: next block doesn't have proper back link\n");
-
-		if (block->tag == PU_FREE && block->next->tag == PU_FREE)
-			fprintf(f, "ERROR: two consecutive free blocks\n");
 	}
 }
 

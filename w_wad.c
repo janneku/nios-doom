@@ -24,10 +24,8 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "ctype.h"
+#include "string.h"
 
 #include "doomdef.h"
 #include "doomtype.h"
@@ -45,13 +43,13 @@ typedef struct {
 	char identification[4];
 	int numlumps;
 	int infotableofs;
-} PACKEDATTR wadinfo_t;
+} wadinfo_t;
 
 typedef struct {
 	int filepos;
 	int size;
 	char name[8];
-} PACKEDATTR filelump_t;
+} filelump_t;
 
 //
 // GLOBALS
@@ -59,7 +57,7 @@ typedef struct {
 
 // Location of each lump on disk.
 
-lumpinfo_t *lumpinfo;
+lumpinfo_t *lumpinfo = NULL;
 unsigned int numlumps = 0;
 
 // Hash table for fast lookups
@@ -123,7 +121,7 @@ unsigned int W_LumpNameHash(const char *s)
 wad_file_t *W_AddFile(char *filename)
 {
 	wadinfo_t header;
-	lumpinfo_t *lump_p;
+	lumpinfo_t *lump_p, *newlumps;
 	unsigned int i;
 	wad_file_t *wad_file;
 	int length;
@@ -136,12 +134,15 @@ wad_file_t *W_AddFile(char *filename)
 	wad_file = W_OpenFile(filename);
 
 	if (wad_file == NULL) {
-		printf(" couldn't open %s\n", filename);
+		I_Print(" couldn't open ");
+		I_Print(filename);
+		I_Print("\n");
 		return NULL;
 	}
 
 	startlump = numlumps;
 
+#if 0
 	if (strcasecmp(filename + strlen(filename) - 3, "wad")) {
 		// single lump file
 
@@ -159,13 +160,15 @@ wad_file_t *W_AddFile(char *filename)
 
 		ExtractFileBase(filename, fileinfo->name);
 		numlumps++;
-	} else {
+	} else
+#endif
+	{
 		// WAD file
 		W_Read(wad_file, 0, &header, sizeof(header));
 
-		if (strncmp(header.identification, "IWAD", 4)) {
+		if (memcmp(header.identification, "IWAD", 4)) {
 			// Homebrew levels?
-			if (strncmp(header.identification, "PWAD", 4)) {
+			if (memcmp(header.identification, "PWAD", 4)) {
 				I_Error("Wad file %s doesn't have IWAD "
 					"or PWAD id\n", filename);
 			}
@@ -181,13 +184,17 @@ wad_file_t *W_AddFile(char *filename)
 		numlumps += header.numlumps;
 	}
 
+	newlumps = Z_Malloc(numlumps * sizeof(lumpinfo_t), PU_STATIC, 0);
+
+	if (lumpinfo)
+		memcpy(newlumps, lumpinfo, startlump * sizeof(lumpinfo_t));
+
+	// Switch to the new lumpinfo, and free the old one
+	if (lumpinfo)
+		Z_Free(lumpinfo);
+	lumpinfo = newlumps;
+
 	// Fill in lumpinfo
-	lumpinfo = realloc(lumpinfo, numlumps * sizeof(lumpinfo_t));
-
-	if (lumpinfo == NULL) {
-		I_Error("Couldn't realloc lumpinfo");
-	}
-
 	lump_p = &lumpinfo[startlump];
 
 	filerover = fileinfo;
@@ -197,6 +204,7 @@ wad_file_t *W_AddFile(char *filename)
 		lump_p->position = LONG(filerover->filepos);
 		lump_p->size = LONG(filerover->size);
 		lump_p->cache = NULL;
+		lump_p->next = NULL;
 		strncpy(lump_p->name, filerover->name, 8);
 
 		++lump_p;
@@ -274,7 +282,10 @@ int W_GetNumForName(char *name)
 	i = W_CheckNumForName(name);
 
 	if (i < 0) {
-		I_Error("W_GetNumForName: %s not found!", name);
+		I_Print("Looking for ");
+		I_Print(name);
+		I_Print("\n");
+		I_Error("W_GetNumForName: LUMP NOT FOUND");
 	}
 
 	return i;
@@ -344,16 +355,7 @@ void *W_CacheLumpNum(int lumpnum, int tag)
 
 	lump = &lumpinfo[lumpnum];
 
-	// Get the pointer to return.  If the lump is in a memory-mapped
-	// file, we can just return a pointer to within the memory-mapped
-	// region.  If the lump is in an ordinary file, we may already
-	// have it cached; otherwise, load it into memory.
-
-	if (lump->wad_file->mapped != NULL) {
-		// Memory mapped file, return from the mmapped region.
-
-		result = lump->wad_file->mapped + lump->position;
-	} else if (lump->cache != NULL) {
+	if (lump->cache != NULL) {
 		// Already cached, so just switch the zone tag.
 
 		result = lump->cache;
@@ -398,77 +400,13 @@ void W_ReleaseLumpNum(int lumpnum)
 
 	lump = &lumpinfo[lumpnum];
 
-	if (lump->wad_file->mapped != NULL) {
-		// Memory-mapped file, so nothing needs to be done here.
-	} else {
-		Z_ChangeTag(lump->cache, PU_CACHE);
-	}
+	Z_ChangeTag(lump->cache, PU_CACHE);
 }
 
 void W_ReleaseLumpName(char *name)
 {
 	W_ReleaseLumpNum(W_GetNumForName(name));
 }
-
-#if 0
-
-//
-// W_Profile
-//
-int info[2500][10];
-int profilecount;
-
-void W_Profile(void)
-{
-	int i;
-	memblock_t *block;
-	void *ptr;
-	char ch;
-	FILE *f;
-	int j;
-	char name[9];
-
-	for (i = 0; i < numlumps; i++) {
-		ptr = lumpinfo[i].cache;
-		if (!ptr) {
-			ch = ' ';
-			continue;
-		} else {
-			block =
-			    (memblock_t *) ((byte *) ptr - sizeof(memblock_t));
-			if (block->tag < PU_PURGELEVEL)
-				ch = 'S';
-			else
-				ch = 'P';
-		}
-		info[i][profilecount] = ch;
-	}
-	profilecount++;
-
-	f = fopen("waddump.txt", "w");
-	name[8] = 0;
-
-	for (i = 0; i < numlumps; i++) {
-		memcpy(name, lumpinfo[i].name, 8);
-
-		for (j = 0; j < 8; j++)
-			if (!name[j])
-				break;
-
-		for (; j < 8; j++)
-			name[j] = ' ';
-
-		fprintf(f, "%s ", name);
-
-		for (j = 0; j < profilecount; j++)
-			fprintf(f, "    %c", info[i][j]);
-
-		fprintf(f, "\n");
-	}
-	fclose(f);
-}
-
-#endif
 
 // Generate a hash table for fast lookups
 

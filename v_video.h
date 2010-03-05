@@ -45,9 +45,7 @@
 // Screen 0 is the screen updated by I_Update screen.
 // Screen 1 is an extra buffer.
 
-extern byte *screens[5];
-
-extern int dirtybox[4];
+extern byte *screens[2];
 
 extern const byte gammatable[5][256];
 extern int usegamma;
@@ -69,8 +67,6 @@ void V_DrawBlock(int x, int y, int scrn, int width, int height, byte * src);
 
 // Reads a linear block of pixels into the view buffer.
 void V_GetBlock(int x, int y, int scrn, int width, int height, byte * dest);
-
-void V_MarkRect(int x, int y, int width, int height);
 
 void V_ScreenShot(void);
 

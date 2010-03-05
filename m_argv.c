@@ -23,17 +23,15 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "ctype.h"
+#include "string.h"
 
 #include "doomdef.h"
 #include "i_system.h"
 #include "m_misc.h"
 
-int myargc;
-char **myargv;
+int myargc = 1;
+char *myargv[] = { NULL, };
 
 //
 // M_CheckParm
@@ -45,15 +43,18 @@ char **myargv;
 
 int M_CheckParm(char *check)
 {
-	int i;
+	/*int               i;
 
-	for (i = 1; i < myargc; i++) {
-		if (!strcasecmp(check, myargv[i]))
-			return i;
-	}
+	   for (i = 1;i<myargc;i++)
+	   {
+	   if ( !strcasecmp(check, myargv[i]) )
+	   return i;
+	   } */
 
 	return 0;
 }
+
+#if 0
 
 #define MAXARGVS        100
 
@@ -74,11 +75,11 @@ static void LoadResponseFile(int argv_index)
 	handle = fopen(response_filename, "r");
 
 	if (handle == NULL) {
-		printf("\nNo such response file!");
+		I_Print("\nNo such response file!");
 		exit(1);
 	}
 
-	printf("Found response file %s!\n", response_filename);
+	I_Print("Found response file %s!\n", response_filename);
 
 	size = M_FileLength(handle);
 
@@ -173,13 +174,15 @@ static void LoadResponseFile(int argv_index)
 	// Disabled - Vanilla Doom does not do this.
 	// Display arguments
 
-	printf("%d command-line args:\n", myargc);
+	I_Print("%d command-line args:\n", myargc);
 
 	for (k = 1; k < myargc; k++) {
-		printf("'%s'\n", myargv[k]);
+		I_Print("'%s'\n", myargv[k]);
 	}
 #endif
 }
+
+#endif
 
 //
 // Find a Response File
@@ -187,11 +190,13 @@ static void LoadResponseFile(int argv_index)
 
 void M_FindResponseFile(void)
 {
-	int i;
+	/*int             i;
 
-	for (i = 1; i < myargc; i++) {
-		if (myargv[i][0] == '@') {
-			LoadResponseFile(i);
-		}
-	}
+	   for (i = 1; i < myargc; i++)
+	   {
+	   if (myargv[i][0] == '@')
+	   {
+	   LoadResponseFile(i);
+	   }
+	   } */
 }

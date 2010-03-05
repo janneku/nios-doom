@@ -35,7 +35,6 @@
 // We need globally shared data structures,
 //  for defining the global state variables.
 #include "doomdata.h"
-#include "d_net.h"
 
 // We need the playr data structure as well.
 #include "d_player.h"
@@ -48,8 +47,6 @@ extern boolean respawnparm;	// checkparm of -respawn
 extern boolean fastparm;	// checkparm of -fast
 
 extern boolean devparm;		// DEBUG: launched with -devparm
-
-extern boolean screensaver_mode;	// game running as a screensaver?
 
 // -----------------------------------------------------
 // Game Mode - identify IWAD as shareware, retail etc.
@@ -65,20 +62,6 @@ extern boolean modifiedgame;
 // -------------------------------------------
 // Selected skill type, map etc.
 //
-
-// Defaults for menu, methinks.
-extern skill_t startskill;
-extern int startepisode;
-extern int startmap;
-
-// Savegame slot to load on startup.  This is the value provided to
-// the -loadgame option.  If this has not been provided, this is -1.
-
-extern int startloadgame;
-
-extern boolean autostart;
-
-// Selected by user. 
 extern skill_t gameskill;
 extern int gameepisode;
 extern int gamemap;
@@ -146,8 +129,6 @@ extern int viewheight;
 extern int viewwidth;
 extern int scaledviewwidth;
 
-extern boolean testcontrols;
-
 // This one is related to the 3-screen display mode.
 // ANG90 = left side, ANG270 = right
 extern int viewangleoffset;
@@ -195,7 +176,7 @@ extern gamestate_t gamestate;
 //  according to user inputs. Partly load from
 //  WAD, partly set at startup time.
 
-extern int gametic;
+extern int gametic, framecount;
 
 // Bookkeeping on players - state.
 extern player_t players[MAXPLAYERS];
@@ -223,11 +204,6 @@ extern int maxammo[NUMAMMO];
 // Internal parameters, used for engine.
 //
 
-// File handling stuff.
-extern char *savegamedir;
-extern char basedefault[1024];
-extern FILE *debugfile;
-
 // if true, load all graphics at level load
 extern boolean precache;
 
@@ -251,10 +227,8 @@ extern int skyflatnum;
 
 extern int rndindex;
 
-extern int maketic;
-extern int nettics[MAXPLAYERS];
+#define BACKUPTICS		8
 
 extern ticcmd_t netcmds[MAXPLAYERS][BACKUPTICS];
-extern int ticdup;
 
 #endif

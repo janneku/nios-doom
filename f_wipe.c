@@ -194,14 +194,14 @@ int
 
 int
  wipe_StartScreen(int x, int y, int width, int height) {
-	wipe_scr_start = screens[2];
+	wipe_scr_start = Z_Malloc(SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
 	I_ReadScreen(wipe_scr_start);
 	return 0;
 }
 
 int
  wipe_EndScreen(int x, int y, int width, int height) {
-	wipe_scr_end = screens[3];
+	wipe_scr_end = Z_Malloc(SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
 	I_ReadScreen(wipe_scr_end);
 	V_DrawBlock(x, y, 0, width, height, wipe_scr_start);	// restore start scr.
 	return 0;
@@ -214,23 +214,19 @@ int
 	wipe_initColorXForm, wipe_doColorXForm, wipe_exitColorXForm,
 		    wipe_initMelt, wipe_doMelt, wipe_exitMelt};
 
-	void V_MarkRect(int, int, int, int);
-
 	// initial stuff
 	if (!go) {
 		go = 1;
-		// wipe_scr = (byte *) Z_Malloc(width*height, PU_STATIC, 0); // DEBUG
 		wipe_scr = screens[0];
 		(*wipes[wipeno * 3]) (width, height, ticks);
 	}
-	// do a piece of wipe-in
-	V_MarkRect(0, 0, width, height);
 	rc = (*wipes[wipeno * 3 + 1]) (width, height, ticks);
-	//  V_DrawBlock(x, y, 0, width, height, wipe_scr); // DEBUG
 
 	// final stuff
 	if (rc) {
 		go = 0;
+		Z_Free(wipe_scr_start);
+		Z_Free(wipe_scr_end);
 		(*wipes[wipeno * 3 + 2]) (width, height, ticks);
 	}
 

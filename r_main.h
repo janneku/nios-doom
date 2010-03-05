@@ -85,6 +85,8 @@ extern lighttable_t *fixedcolormap;
 //  0 = high, 1 = low
 extern int detailshift;
 
+extern boolean setsizeneeded;
+
 //
 // Function pointers to switch refresh/drawing functions.
 // Used to select shadow mode etc.
@@ -121,7 +123,7 @@ void R_AddPointToBox(int x, int y, fixed_t * box);
 //
 
 // Called by G_Drawer.
-void R_RenderPlayerView(player_t * player);
+void R_RenderPlayerView(player_t * player, fixed_t frac);
 
 // Called by startup code.
 void R_Init(void);

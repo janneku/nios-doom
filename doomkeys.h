@@ -62,20 +62,6 @@
 #define KEY_RCTRL	(0x80+0x1d)
 #define KEY_RALT	(0x80+0x38)
 
-#define KEY_LALT	KEY_RALT
-
-// new keys:
-
-#define KEY_CAPSLOCK    (0x80+0x3a)
-#define KEY_SCRLCK      (0x80+0x46)
-
-#define KEY_HOME        (0x80+0x47)
-#define KEY_END         (0x80+0x4f)
-#define KEY_PGUP        (0x80+0x49)
-#define KEY_PGDN        (0x80+0x51)
-#define KEY_INS         (0x80+0x52)
-#define KEY_DEL         (0x80+0x53)
-
 #define KEYP_0          0
 #define KEYP_1          KEY_END
 #define KEYP_2          KEY_DOWNARROW

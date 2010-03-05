@@ -24,69 +24,39 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "config.h"
-
+#include "fat32.h"
 #include "doomdef.h"
 #include "doomtype.h"
 #include "m_argv.h"
 
 #include "w_file.h"
 
-extern wad_file_class_t stdc_wad_file;
-
-#ifdef _WIN32
-extern wad_file_class_t win32_wad_file;
-#endif
-
-#ifdef HAVE_MMAP
-extern wad_file_class_t posix_wad_file;
-#endif
-
-static wad_file_class_t *wad_file_classes[] = {
-#ifdef _WIN32
-	&win32_wad_file,
-#endif
-#ifdef HAVE_MMAP
-	&posix_wad_file,
-#endif
-	&stdc_wad_file,
-};
+#include "z_zone.h"
 
 wad_file_t *W_OpenFile(char *path)
 {
-	wad_file_t *result;
-	int i;
+	struct FAT32_DIR dir;
+	struct FAT32_FILE *f;
 
-	//!
-	// Do not use the OS's virtual memory subsystem to map WAD files 
-	// directly into memory.
-	//
+	if (fat32_opendir("/", &dir))
+		return NULL;
 
-	if (M_CheckParm("-nommap") > 0) {
-		return stdc_wad_file.OpenFile(path);
-	}
-	// Try all classes in order until we find one that works
+	f = Z_Malloc(sizeof(*f), PU_STATIC, NULL);
 
-	result = NULL;
+	if (fat32_fopen(&dir, path, f))
+		return NULL;
 
-	for (i = 0; i < arrlen(wad_file_classes); ++i) {
-		result = wad_file_classes[i]->OpenFile(path);
-
-		if (result != NULL) {
-			break;
-		}
-	}
-
-	return result;
+	return f;
 }
 
-void W_CloseFile(wad_file_t * wad)
+void W_CloseFile(wad_file_t *f)
 {
-	wad->file_class->CloseFile(wad);
+	Z_Free(f);
 }
 
-size_t W_Read(wad_file_t * wad, unsigned int offset,
+size_t W_Read(wad_file_t *f, unsigned int offset,
 	      void *buffer, size_t buffer_len)
 {
-	return wad->file_class->Read(wad, offset, buffer, buffer_len);
+	fat32_seek(offset, f);
+	return fat32_read(buffer, buffer_len, f);
 }

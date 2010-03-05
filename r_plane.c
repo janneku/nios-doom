@@ -26,8 +26,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-
 #include "i_system.h"
 #include "z_zone.h"
 #include "w_wad.h"
@@ -70,7 +68,6 @@ short ceilingclip[SCREENWIDTH];
 // initialized to 0 at start
 //
 int spanstart[SCREENHEIGHT];
-int spanstop[SCREENHEIGHT];
 
 //
 // texture mapping
@@ -94,7 +91,8 @@ fixed_t cachedystep[SCREENHEIGHT];
 //
 void R_InitPlanes(void)
 {
-	// Doh!
+	memset(visplanes, 0, sizeof(visplanes));
+	memset(spanstart, 0, sizeof(spanstart));
 }
 
 //

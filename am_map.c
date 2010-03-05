@@ -24,9 +24,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-
-#include "deh_main.h"
 
 #include "z_zone.h"
 #include "doomdef.h"
@@ -285,9 +282,6 @@ cheatseq_t cheat_amap = CHEAT("iddt", 0);
 static boolean stopped = true;
 
 extern boolean viewactive;
-//extern byte screens[][SCREENWIDTH*SCREENHEIGHT];
-
-void V_MarkRect(int x, int y, int width, int height);
 
 // Calculates the slope and slope according to the x-axis of a line
 // segment in map coordinates (with the upright y-axis n' all) so
@@ -495,7 +489,7 @@ void AM_loadPics(void)
 	char namebuf[9];
 
 	for (i = 0; i < 10; i++) {
-		sprintf(namebuf, DEH_String("AMMNUM%d"), i);
+		format_number(namebuf, "AMMNUM%d", i, 10);
 		marknums[i] = W_CacheLumpName(namebuf, PU_STATIC);
 	}
 
@@ -507,7 +501,7 @@ void AM_unloadPics(void)
 	char namebuf[9];
 
 	for (i = 0; i < 10; i++) {
-		sprintf(namebuf, DEH_String("AMMNUM%d"), i);
+		format_number(namebuf, "AMMNUM%d", i, 10);
 		W_ReleaseLumpName(namebuf);
 	}
 }
@@ -667,26 +661,26 @@ boolean AM_Responder(event_t * ev) {
 			followplayer = !followplayer;
 			f_oldloc.x = INT_MAX;
 			if (followplayer)
-				plr->message = DEH_String(AMSTR_FOLLOWON);
+				plr->message = AMSTR_FOLLOWON;
 			else
-				plr->message = DEH_String(AMSTR_FOLLOWOFF);
+				plr->message = AMSTR_FOLLOWOFF;
 			break;
 		case AM_GRIDKEY:
 			grid = !grid;
 			if (grid)
-				plr->message = DEH_String(AMSTR_GRIDON);
+				plr->message = AMSTR_GRIDON;
 			else
-				plr->message = DEH_String(AMSTR_GRIDOFF);
+				plr->message = AMSTR_GRIDOFF;
 			break;
 		case AM_MARKKEY:
-			sprintf(buffer, "%s %d", DEH_String(AMSTR_MARKEDSPOT),
-				markpointnum);
+			format_number(buffer, AMSTR_MARKEDSPOT " %d",
+				      markpointnum, 10);
 			plr->message = buffer;
 			AM_addMark();
 			break;
 		case AM_CLEARMARKKEY:
 			AM_clearMarks();
-			plr->message = DEH_String(AMSTR_MARKSCLEARED);
+			plr->message = AMSTR_MARKSCLEARED;
 			break;
 		default:
 			cheatstate = 0;
@@ -959,13 +953,10 @@ void AM_drawFline(fline_t * fl, int color) {
 	register int ay;
 	register int d;
 
-	static int fuck = 0;
-
 	// For debugging only
 	if (fl->a.x < 0 || fl->a.x >= f_w
 	    || fl->a.y < 0 || fl->a.y >= f_h
 	    || fl->b.x < 0 || fl->b.x >= f_w || fl->b.y < 0 || fl->b.y >= f_h) {
-		fprintf(stderr, DEH_String("fuck %d \r"), fuck++);
 		return;
 	}
 #define PUTDOT(xx,yy,cc) fb[(yy)*f_w+(xx)]=(cc)
@@ -1272,7 +1263,4 @@ void AM_Drawer(void)
 	AM_drawCrosshair(XHAIRCOLORS);
 
 	AM_drawMarks();
-
-	V_MarkRect(f_x, f_y, f_w, f_h);
-
 }

@@ -27,8 +27,6 @@
 #ifndef __D_MAIN__
 #define __D_MAIN__
 
-#include "d_event.h"
-
 //
 // D_DoomMain()
 // Not a globally visible function, just included for source reference,
@@ -36,13 +34,6 @@
 // If not overrided by user input, calls N_AdvanceDemo.
 //
 void D_DoomMain(void);
-
-// Called by IO functions when input is detected.
-void D_PostEvent(event_t * ev);
-
-// Read an event from the event queue
-
-event_t *D_PopEvent(void);
 
 // Read events from all input devices
 

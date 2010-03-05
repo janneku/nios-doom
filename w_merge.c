@@ -26,8 +26,7 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-#include <string.h>
+#include "string.h"
 
 #include "doomdef.h"
 #include "i_system.h"
@@ -333,7 +332,7 @@ static void DoMerge(void)
 	int i, n;
 
 	// Can't ever have more lumps than we already have
-	newlumps = malloc(sizeof(lumpinfo_t) * numlumps);
+	newlumps = Z_Malloc(sizeof(lumpinfo_t) * numlumps, PU_STATIC, 0);
 	num_newlumps = 0;
 
 	// Add IWAD lumps
@@ -466,22 +465,10 @@ static void DoMerge(void)
 
 	// Switch to the new lumpinfo, and free the old one
 
-	free(lumpinfo);
+	Z_Free(lumpinfo);
 	lumpinfo = newlumps;
 	numlumps = num_newlumps;
 
-}
-
-void W_PrintDirectory(void)
-{
-	unsigned int i, n;
-
-	// debug
-	for (i = 0; i < numlumps; ++i) {
-		for (n = 0; n < 8 && lumpinfo[i].name[n] != '\0'; ++n)
-			putchar(lumpinfo[i].name[n]);
-		putchar('\n');
-	}
 }
 
 // Merge in a file by name

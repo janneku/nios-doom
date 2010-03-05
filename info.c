@@ -26,8 +26,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-
 // Data.
 #include "sounds.h"
 #include "m_fixed.h"
@@ -36,7 +34,7 @@
 
 #include "p_mobj.h"
 
-char *sprnames[] = {
+const char *sprnames[] = {
 	"TROO", "SHTG", "PUNG", "PISG", "PISF", "SHTF", "SHT2", "CHGG", "CHGF",
 	    "MISG",
 	"MISF", "SAWG", "PLSG", "PLSF", "BFGG", "BFGF", "BLUD", "PUFF", "BAL1",

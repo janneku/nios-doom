@@ -207,6 +207,10 @@ void P_PlayerThink(player_t * player)
 	ticcmd_t *cmd;
 	weapontype_t newweapon;
 
+	player->prevx = player->mo->x;
+	player->prevy = player->mo->y;
+	player->prevan = player->mo->angle;
+
 	// fixme: do this in the cheat code
 	if (player->cheats & CF_NOCLIP)
 		player->mo->flags |= MF_NOCLIP;

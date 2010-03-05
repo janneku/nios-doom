@@ -28,46 +28,19 @@
 #ifndef __DOOMTYPE__
 #define __DOOMTYPE__
 
-// C99 integer types; with gcc we just use this.  Other compilers 
-// should add conditional statements that define the C99 types.
-
-// What is really wanted here is stdint.h; however, some old versions
-// of Solaris don't have stdint.h and only have inttypes.h (the 
-// pre-standardisation version).  inttypes.h is also in the C99 
-// standard and defined to include stdint.h, so include this. 
-
-#include <inttypes.h>
-
-#ifdef __cplusplus
-
-// Use builtin bool type with C++.
-
-typedef bool boolean;
-
-#else
+#include "types.h"
 
 typedef enum {
 	false,
 	true
 } boolean;
 
-#endif
+typedef unsigned char byte;
 
-typedef uint8_t byte;
-
-#include <limits.h>
-
-#ifdef _WIN32
-
-#define DIR_SEPARATOR '\\'
-#define PATH_SEPARATOR ';'
-
-#else
+#include "limits.h"
 
 #define DIR_SEPARATOR '/'
 #define PATH_SEPARATOR ':'
-
-#endif
 
 #define arrlen(array) (sizeof(array) / sizeof(*array))
 

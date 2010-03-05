@@ -24,10 +24,9 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ctype.h>
+#include "ctype.h"
 
 // Functions.
-#include "deh_main.h"
 #include "i_system.h"
 #include "i_swap.h"
 #include "z_zone.h"
@@ -117,9 +116,9 @@ void F_StartFinale(void)
 	automapactive = false;
 
 	if (gamemission == doom) {
-		S_ChangeMusic(mus_victor, true);
+		S_ChangeMusic(NULL, true);
 	} else {
-		S_ChangeMusic(mus_read_m, true);
+		S_ChangeMusic("d2readme.pcm", true);
 	}
 
 	// Find the right screen and set the text and background
@@ -143,8 +142,8 @@ void F_StartFinale(void)
 
 	// Do dehacked substitutions of strings
 
-	finaletext = DEH_String(finaletext);
-	finaleflat = DEH_String(finaleflat);
+	finaletext = finaletext;
+	finaleflat = finaleflat;
 
 	finalestage = F_STAGE_TEXT;
 	finalecount = 0;
@@ -197,8 +196,8 @@ void F_Ticker(void)
 		finalecount = 0;
 		finalestage = F_STAGE_ARTSCREEN;
 		wipegamestate = -1;	// force a wipe
-		if (gameepisode == 3)
-			S_StartMusic(mus_bunny);
+		/*if (gameepisode == 3)
+			S_StartMusic(mus_bunny);*/
 	}
 }
 
@@ -235,8 +234,6 @@ void F_TextWrite(void)
 			dest += (SCREENWIDTH & 63);
 		}
 	}
-
-	V_MarkRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
 
 	// draw some of the text onto the screen
 	cx = 10;
@@ -327,7 +324,7 @@ void F_StartCast(void)
 	castframes = 0;
 	castonmelee = 0;
 	castattacking = false;
-	S_ChangeMusic(mus_evil, true);
+	S_ChangeMusic("d2readme.pcm", true);
 }
 
 //
@@ -460,7 +457,7 @@ void F_CastTicker(void)
 		if (castframes == 24
 		    || caststate ==
 		    &states[mobjinfo[castorder[castnum].type].seestate]) {
-stopattack:
+		      stopattack:
 			castattacking = false;
 			castframes = 0;
 			caststate =
@@ -558,9 +555,9 @@ void F_CastDrawer(void)
 	patch_t *patch;
 
 	// erase the entire screen to a background
-	V_DrawPatch(0, 0, 0, W_CacheLumpName(DEH_String("BOSSBACK"), PU_CACHE));
+	V_DrawPatch(0, 0, 0, W_CacheLumpName("BOSSBACK", PU_CACHE));
 
-	F_CastPrint(DEH_String(castorder[castnum].name));
+	F_CastPrint(castorder[castnum].name);
 
 	// draw the current frame in the middle of the screen
 	sprdef = &sprites[caststate->sprite];
@@ -615,10 +612,8 @@ void F_BunnyScroll(void)
 	int stage;
 	static int laststage;
 
-	p1 = W_CacheLumpName(DEH_String("PFUB2"), PU_LEVEL);
-	p2 = W_CacheLumpName(DEH_String("PFUB1"), PU_LEVEL);
-
-	V_MarkRect(0, 0, SCREENWIDTH, SCREENHEIGHT);
+	p1 = W_CacheLumpName("PFUB2", PU_LEVEL);
+	p2 = W_CacheLumpName("PFUB1", PU_LEVEL);
 
 	scrolled = (320 - ((signed int)finalecount - 230) / 2);
 	if (scrolled > 320)
@@ -638,7 +633,7 @@ void F_BunnyScroll(void)
 	if (finalecount < 1180) {
 		V_DrawPatch((SCREENWIDTH - 13 * 8) / 2,
 			    (SCREENHEIGHT - 8 * 8) / 2, 0,
-			    W_CacheLumpName(DEH_String("END0"), PU_CACHE));
+			    W_CacheLumpName("END0", PU_CACHE));
 		laststage = 0;
 		return;
 	}
@@ -651,7 +646,7 @@ void F_BunnyScroll(void)
 		laststage = stage;
 	}
 
-	sprintf(name, DEH_String("END%i"), stage);
+	format_number(name, "END%i", stage, 10);
 	V_DrawPatch((SCREENWIDTH - 13 * 8) / 2, (SCREENHEIGHT - 8 * 8) / 2, 0,
 		    W_CacheLumpName(name, PU_CACHE));
 }
@@ -681,7 +676,7 @@ static void F_ArtScreenDrawer(void)
 			return;
 		}
 
-		lumpname = DEH_String(lumpname);
+		lumpname = lumpname;
 
 		V_DrawPatch(0, 0, 0, W_CacheLumpName(lumpname, PU_CACHE));
 	}

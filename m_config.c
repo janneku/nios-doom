@@ -25,13 +25,9 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <errno.h>
+#include "ctype.h"
 
 #include "config.h"
-#include "deh_main.h"
 #include "doomdef.h"
 #include "doomfeatures.h"
 
@@ -39,11 +35,9 @@
 
 #include "m_menu.h"
 #include "m_argv.h"
-#include "net_client.h"
 
 #include "w_wad.h"
 
-#include "i_joystick.h"
 #include "i_swap.h"
 #include "i_system.h"
 #include "i_video.h"
@@ -63,14 +57,6 @@
 // DEFAULTS
 //
 
-// Location where all configuration data is stored - 
-// default.cfg, savegames, etc.
-
-char *configdir;
-
-int usemouse = 1;
-int usejoystick = 0;
-
 extern int key_right;
 extern int key_left;
 extern int key_up;
@@ -84,23 +70,7 @@ extern int key_use;
 extern int key_strafe;
 extern int key_speed;
 
-extern int mousebfire;
-extern int mousebstrafe;
-extern int mousebforward;
-
-extern int mousebstrafeleft;
-extern int mousebstraferight;
-extern int mousebbackward;
-extern int mousebuse;
-
 extern int dclick_use;
-
-extern int joybfire;
-extern int joybstrafe;
-extern int joybuse;
-extern int joybspeed;
-extern int joybstrafeleft;
-extern int joybstraferight;
 
 extern int viewwidth;
 extern int viewheight;
@@ -113,26 +83,8 @@ extern int numChannels;
 
 extern char *chat_macros[];
 
-extern int show_endoom;
 extern int vanilla_savegame_limit;
 extern int vanilla_demo_limit;
-
-extern int snd_musicdevice;
-extern int snd_sfxdevice;
-extern int snd_samplerate;
-
-// controls whether to use libsamplerate for sample rate conversions
-
-extern int use_libsamplerate;
-
-// dos specific options: these are unused but should be maintained
-// so that the config file can be shared between chocolate
-// doom and doom.exe
-
-static int snd_sbport = 0;
-static int snd_sbirq = 0;
-static int snd_sbdma = 0;
-static int snd_mport = 0;
 
 typedef enum {
 	DEFAULT_INT,
@@ -275,64 +227,6 @@ static default_t doom_defaults_list[] = {
 	CONFIG_VARIABLE_KEY(key_speed, key_speed),
 
 	//!
-	// If non-zero, mouse input is enabled.  If zero, mouse input is
-	// disabled.
-	//
-
-	CONFIG_VARIABLE_INT(use_mouse, usemouse),
-
-	//!
-	// Mouse button to fire the currently selected weapon.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_fire, mousebfire),
-
-	//!
-	// Mouse button to turn on strafing.  When held down, the player
-	// will strafe left and right instead of turning left and right.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_strafe, mousebstrafe),
-
-	//!
-	// Mouse button to move forward.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_forward, mousebforward),
-
-	//!
-	// If non-zero, joystick input is enabled.
-	//
-
-	CONFIG_VARIABLE_INT(use_joystick, usejoystick),
-
-	//!
-	// Joystick button to fire the current weapon.
-	//
-
-	CONFIG_VARIABLE_INT(joyb_fire, joybfire),
-
-	//!
-	// Joystick button to fire the current weapon.
-	//
-
-	CONFIG_VARIABLE_INT(joyb_strafe, joybstrafe),
-
-	//!
-	// Joystick button to "use" an object, eg. a door or switch.
-	//
-
-	CONFIG_VARIABLE_INT(joyb_use, joybuse),
-
-	//!
-	// Joystick button to make the player run.
-	//
-	// If this has a value of 20 or greater, the player will always run.
-	//
-
-	CONFIG_VARIABLE_INT(joyb_speed, joybspeed),
-
-	//!
 	// Screen size, range 3-11.
 	//
 	// A value of 11 gives a full-screen view with the status bar not 
@@ -348,52 +242,6 @@ static default_t doom_defaults_list[] = {
 	//
 
 	CONFIG_VARIABLE_INT(detaillevel, detailLevel),
-
-	//!
-	// Number of sounds that will be played simultaneously.
-	//
-
-	CONFIG_VARIABLE_INT(snd_channels, numChannels),
-
-	//!
-	// Music output device.  A non-zero value gives MIDI sound output,
-	// while a value of zero disables music.
-	//
-
-	CONFIG_VARIABLE_INT(snd_musicdevice, snd_musicdevice),
-
-	//!
-	// Sound effects device.  A value of zero disables in-game sound 
-	// effects, a value of 1 enables PC speaker sound effects, while 
-	// a value in the range 2-9 enables the "normal" digital sound 
-	// effects.
-	//
-
-	CONFIG_VARIABLE_INT(snd_sfxdevice, snd_sfxdevice),
-
-	//!
-	// SoundBlaster I/O port. Unused.
-	//
-
-	CONFIG_VARIABLE_INT(snd_sbport, snd_sbport),
-
-	//!
-	// SoundBlaster IRQ.  Unused.
-	//
-
-	CONFIG_VARIABLE_INT(snd_sbirq, snd_sbirq),
-
-	//!
-	// SoundBlaster DMA channel.  Unused.
-	//
-
-	CONFIG_VARIABLE_INT(snd_sbdma, snd_sbdma),
-
-	//!
-	// Output port to use for OPL MIDI playback.  Unused.
-	//
-
-	CONFIG_VARIABLE_INT(snd_mport, snd_mport),
 
 	//!
 	// Gamma correction level.  A value of zero disables gamma 
@@ -467,108 +315,12 @@ static default_t doom_defaults_list[] = {
 static default_collection_t doom_defaults = {
 	doom_defaults_list,
 	arrlen(doom_defaults_list),
-	NULL,
+	"default.cfg",
 };
 
 //! @begin_config_file chocolate-doom.cfg
 
 static default_t extra_defaults_list[] = {
-	//!
-	// If non-zero, video settings will be autoadjusted to a valid 
-	// configuration when the screen_width and screen_height variables
-	// do not match any valid configuration.
-	//
-
-	CONFIG_VARIABLE_INT(autoadjust_video_settings,
-			    autoadjust_video_settings),
-
-	//!
-	// If non-zero, the game will run in full screen mode.  If zero,
-	// the game will run in a window.
-	//
-
-	CONFIG_VARIABLE_INT(fullscreen, fullscreen),
-
-	//!
-	// If non-zero, the screen will be stretched vertically to display
-	// correctly on a square pixel video mode.
-	//
-
-	CONFIG_VARIABLE_INT(aspect_ratio_correct, aspect_ratio_correct),
-
-	//!
-	// Number of milliseconds to wait on startup after the video mode
-	// has been set, before the game will start.  This allows the 
-	// screen to settle on some monitors that do not display an image 
-	// for a brief interval after changing video modes.
-	//
-
-	CONFIG_VARIABLE_INT(startup_delay, startup_delay),
-
-	//!
-	// Screen width in pixels.  If running in full screen mode, this is
-	// the X dimension of the video mode to use.  If running in
-	// windowed mode, this is the width of the window in which the game
-	// will run.
-	//
-
-	CONFIG_VARIABLE_INT(screen_width, screen_width),
-
-	//!
-	// Screen height in pixels.  If running in full screen mode, this is
-	// the Y dimension of the video mode to use.  If running in
-	// windowed mode, this is the height of the window in which the game
-	// will run.
-	//
-
-	CONFIG_VARIABLE_INT(screen_height, screen_height),
-
-	//!
-	// If this is non-zero, the mouse will be "grabbed" when running
-	// in windowed mode so that it can be used as an input device.
-	// When running full screen, this has no effect.
-	//
-
-	CONFIG_VARIABLE_INT(grabmouse, grabmouse),
-
-	//!
-	// If non-zero, all vertical mouse movement is ignored.  This 
-	// emulates the behavior of the "novert" tool available under DOS
-	// that performs the same function.
-	//
-
-	CONFIG_VARIABLE_INT(novert, novert),
-
-	//!
-	// Mouse acceleration factor.  When the speed of mouse movement
-	// exceeds the threshold value (mouse_threshold), the speed is
-	// multiplied by this value.
-	//
-
-	CONFIG_VARIABLE_FLOAT(mouse_acceleration, mouse_acceleration),
-
-	//!
-	// Mouse acceleration threshold.  When the speed of mouse movement
-	// exceeds this threshold value, the speed is multiplied by an 
-	// acceleration factor (mouse_acceleration).
-	//
-
-	CONFIG_VARIABLE_INT(mouse_threshold, mouse_threshold),
-
-	//!
-	// Sound output sample rate, in Hz.  Typical values to use are 
-	// 11025, 22050, 44100 and 48000.
-	//
-
-	CONFIG_VARIABLE_INT(snd_samplerate, snd_samplerate),
-
-	//!
-	// If non-zero, the ENDOOM screen is displayed when exiting the
-	// game.  If zero, the ENDOOM screen is not displayed.
-	//
-
-	CONFIG_VARIABLE_INT(show_endoom, show_endoom),
-
 	//!
 	// If non-zero, the Vanilla savegame limit is enforced; if the 
 	// savegame exceeds 180224 bytes in size, the game will exit with
@@ -588,127 +340,20 @@ static default_t extra_defaults_list[] = {
 	CONFIG_VARIABLE_INT(vanilla_demo_limit, vanilla_demo_limit),
 
 	//!
-	// If non-zero, the game behaves like Vanilla Doom, always assuming
-	// an American keyboard mapping.  If this has a value of zero, the 
-	// native keyboard mapping of the keyboard is used.
-	//
-
-	CONFIG_VARIABLE_INT(vanilla_keyboard_mapping, vanilla_keyboard_mapping),
-
-	//!
-	// Name of the SDL video driver to use.  If this is an empty string,
-	// the default video driver is used.
-	//
-
-	CONFIG_VARIABLE_STRING(video_driver, video_driver),
-
-#ifdef FEATURE_MULTIPLAYER
-
-	//!
-	// Name to use in network games for identification.  This is only 
-	// used on the "waiting" screen while waiting for the game to start.
-	//
-
-	CONFIG_VARIABLE_STRING(player_name, net_player_name),
-
-#endif
-
-	//!
-	// Joystick number to use; '0' is the first joystick.  A negative
-	// value ('-1') indicates that no joystick is configured.
-	//
-
-	CONFIG_VARIABLE_INT(joystick_index, joystick_index),
-
-	//!
-	// Joystick axis to use to for horizontal (X) movement.
-	//
-
-	CONFIG_VARIABLE_INT(joystick_x_axis, joystick_x_axis),
-
-	//!
-	// If non-zero, movement on the horizontal joystick axis is inverted.
-	//
-
-	CONFIG_VARIABLE_INT(joystick_x_invert, joystick_x_invert),
-
-	//!
-	// Joystick axis to use to for vertical (Y) movement.
-	//
-
-	CONFIG_VARIABLE_INT(joystick_y_axis, joystick_y_axis),
-
-	//!
-	// If non-zero, movement on the vertical joystick axis is inverted.
-	//
-
-	CONFIG_VARIABLE_INT(joystick_y_invert, joystick_y_invert),
-
-	//!
-	// Joystick button to strafe left.
-	//
-
-	CONFIG_VARIABLE_INT(joyb_strafeleft, joybstrafeleft),
-
-	//!
-	// Joystick button to strafe right.
-	//
-
-	CONFIG_VARIABLE_INT(joyb_straferight, joybstraferight),
-
-	//!
-	// Mouse button to strafe left.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_strafeleft, mousebstrafeleft),
-
-	//!
-	// Mouse button to strafe right.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_straferight, mousebstraferight),
-
-	//!
-	// Mouse button to "use" an object, eg. a door or switch.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_use, mousebuse),
-
-	//!
-	// Mouse button to move backwards.
-	//
-
-	CONFIG_VARIABLE_INT(mouseb_backward, mousebbackward),
-
-	//!
 	// If non-zero, double-clicking a mouse button acts like pressing
 	// the "use" key to use an object in-game, eg. a door or switch.
 	//
 
 	CONFIG_VARIABLE_INT(dclick_use, dclick_use),
-
-	//!
-	// Controls whether libsamplerate support is used for performing
-	// sample rate conversions of sound effects.  Support for this
-	// must be compiled into the program.
-	//
-	// If zero, libsamplerate support is disabled.  If non-zero, 
-	// libsamplerate is enabled. Increasing values roughly correspond
-	// to higher quality conversion; the higher the quality, the 
-	// slower the conversion process.  Linear conversion = 1; 
-	// Zero order hold = 2; Fast Sinc filter = 3; Medium quality
-	// Sinc filter = 4; High quality Sinc filter = 5.
-	//
-
-	CONFIG_VARIABLE_INT(use_libsamplerate, use_libsamplerate),
 };
 
 static default_collection_t extra_defaults = {
 	extra_defaults_list,
 	arrlen(extra_defaults_list),
-	NULL,
+	"chocolate-doom.cfg",
 };
 
+#if 0
 static const int scantokey[128] = {
 	0, 27, '1', '2', '3', '4', '5', '6',
 	'7', '8', '9', '0', '-', '=', KEY_BACKSPACE, 9,
@@ -901,6 +546,7 @@ static void LoadDefaultCollection(default_collection_t * collection)
 
 	fclose(f);
 }
+#endif
 
 //
 // M_SaveDefaults
@@ -908,8 +554,8 @@ static void LoadDefaultCollection(default_collection_t * collection)
 
 void M_SaveDefaults(void)
 {
-	SaveDefaultCollection(&doom_defaults);
-	SaveDefaultCollection(&extra_defaults);
+	/*SaveDefaultCollection(&doom_defaults);
+	   SaveDefaultCollection(&extra_defaults); */
 }
 
 //
@@ -934,13 +580,10 @@ void M_LoadDefaults(void)
 
 	if (i && i < myargc - 1) {
 		doom_defaults.filename = myargv[i + 1];
-		printf("	default file: %s\n", doom_defaults.filename);
-	} else {
-		doom_defaults.filename = malloc(strlen(configdir) + 20);
-		sprintf(doom_defaults.filename, "%sdefault.cfg", configdir);
+		/*I_Print ("    default file: %s\n",doom_defaults.filename); */
 	}
 
-	printf("saving config in %s\n", doom_defaults.filename);
+	/*I_Print("saving config in %s\n", doom_defaults.filename); */
 
 	//!
 	// @arg <file>
@@ -953,70 +596,10 @@ void M_LoadDefaults(void)
 
 	if (i && i < myargc - 1) {
 		extra_defaults.filename = myargv[i + 1];
-		printf("        extra configuration file: %s\n",
-		       extra_defaults.filename);
-	} else {
-		extra_defaults.filename
-		    = malloc(strlen(configdir) + strlen(PACKAGE_TARNAME) + 10);
-		sprintf(extra_defaults.filename, "%s%s.cfg",
-			configdir, PACKAGE_TARNAME);
+		/*I_Print("        extra configuration file: %s\n", 
+		   extra_defaults.filename); */
 	}
 
-	LoadDefaultCollection(&doom_defaults);
-	LoadDefaultCollection(&extra_defaults);
-}
-
-// 
-// SetConfigDir:
-//
-// Sets the location of the configuration directory, where configuration
-// files are stored - default.cfg, chocolate-doom.cfg, savegames, etc.
-//
-
-void M_SetConfigDir(void)
-{
-#ifndef _WIN32
-	// Ignore the HOME environment variable on Windows - just behave
-	// like Vanilla Doom.
-
-	char *homedir;
-
-	homedir = getenv("HOME");
-
-	if (homedir != NULL) {
-		// put all configuration in a config directory off the
-		// homedir
-
-		configdir =
-		    malloc(strlen(homedir) + strlen(PACKAGE_TARNAME) + 5);
-
-		sprintf(configdir, "%s%c.%s%c", homedir, DIR_SEPARATOR,
-			PACKAGE_TARNAME, DIR_SEPARATOR);
-
-		// make the directory if it doesnt already exist
-
-		M_MakeDirectory(configdir);
-	} else
-#endif /* #ifndef _WIN32 */
-	{
-#ifdef _WIN32
-		//!
-		// @platform windows
-		// @vanilla
-		//
-		// Save configuration data and savegames in c:\doomdata,
-		// allowing play from CD.
-		//
-
-		if (M_CheckParm("-cdrom") > 0) {
-			printf(D_CDROM);
-			configdir = strdup("c:\\doomdata\\");
-
-			M_MakeDirectory(configdir);
-		} else
-#endif
-		{
-			configdir = strdup("");
-		}
-	}
+	/*LoadDefaultCollection(&doom_defaults);
+	   LoadDefaultCollection(&extra_defaults); */
 }

@@ -31,12 +31,6 @@
 // returns current time in tics.
 int I_GetTime(void);
 
-// returns current time in ms
-int I_GetTimeMS(void);
-
-// Pause for a specified number of ms
-void I_Sleep(int ms);
-
 // Initialise timer
 void I_InitTimer(void);
 

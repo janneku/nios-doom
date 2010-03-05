@@ -24,8 +24,9 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <time.h>
+#include "string.h"
 
+#include "i_timer.h"
 #include "m_random.h"
 
 //
@@ -77,5 +78,5 @@ void M_ClearRandom(void)
 
 	// Seed the M_Random counter from the system time
 
-	rndindex = time(NULL) & 0xff;
+	rndindex = I_GetTime() & 0xff;
 }

@@ -28,12 +28,9 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-
 #include "doomdef.h"
 #include "doomstat.h"
 
-#include "deh_main.h"
 #include "i_system.h"
 #include "z_zone.h"
 #include "m_argv.h"
@@ -146,8 +143,8 @@ void P_InitPicAnims(void)
 	for (i = 0; animdefs[i].istexture != -1; i++) {
 		char *startname, *endname;
 
-		startname = DEH_String(animdefs[i].startname);
-		endname = DEH_String(animdefs[i].endname);
+		startname = animdefs[i].startname;
+		endname = animdefs[i].endname;
 
 		if (animdefs[i].istexture) {
 			// different episode ?
@@ -1138,7 +1135,7 @@ void P_SpawnSpecials(void)
 	int episode;
 
 	episode = 1;
-	if (W_CheckNumForName(DEH_String("texture2")) >= 0)
+	if (W_CheckNumForName("texture2") >= 0)
 		episode = 2;
 
 	// See if -TIMER was specified.

@@ -25,8 +25,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-
 #include "deh_misc.h"
 
 #include "m_bbox.h"
@@ -654,7 +652,7 @@ boolean PTR_SlideTraverse(intercept_t * in)
 
 	// the line does block movement,
 	// see if it is closer than best so far
-isblocking:
+      isblocking:
 	if (in->frac < bestslidefrac) {
 		secondslidefrac = bestslidefrac;
 		secondslideline = bestslideline;
@@ -687,7 +685,7 @@ void P_SlideMove(mobj_t * mo)
 	slidemo = mo;
 	hitcount = 0;
 
-retry:
+      retry:
 	if (++hitcount == 3)
 		goto stairstep;	// don't loop forever
 
@@ -720,7 +718,7 @@ retry:
 	// move up to the wall
 	if (bestslidefrac == FRACUNIT + 1) {
 		// the move most have hit the middle, so stairstep
-stairstep:
+	      stairstep:
 		if (!P_TryMove(mo, mo->x, mo->y + mo->momy))
 			P_TryMove(mo, mo->x + mo->momx, mo->y);
 		return;
@@ -905,7 +903,7 @@ boolean PTR_ShootTraverse(intercept_t * in)
 		return true;
 
 		// hit line
-hitline:
+	      hitline:
 		// position a bit closer
 		frac = in->frac - FixedDiv(4 * FRACUNIT, attackrange);
 		x = trace.x + FixedMul(trace.dx, frac);
@@ -1296,8 +1294,9 @@ static void SpechitOverrun(line_t * ld)
 		nofit = addr;
 		break;
 	default:
-		fprintf(stderr, "SpechitOverrun: Warning: unable to emulate"
-			"an overrun where numspechit=%i\n", numspechit);
+		/*I_Print("SpechitOverrun: Warning: unable to emulate"
+		   "an overrun where numspechit=%i\n",
+		   numspechit); */
 		break;
 	}
 }

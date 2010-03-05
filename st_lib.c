@@ -24,9 +24,8 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ctype.h>
+#include "ctype.h"
 
-#include "deh_main.h"
 #include "doomdef.h"
 
 #include "z_zone.h"
@@ -41,6 +40,9 @@
 #include "st_lib.h"
 #include "r_local.h"
 
+#define FG		0
+#define BG		1
+
 // in AM_map.c
 extern boolean automapactive;
 
@@ -52,8 +54,7 @@ patch_t *sttminus;
 
 void STlib_init(void)
 {
-	sttminus =
-	    (patch_t *) W_CacheLumpName(DEH_String("STTMINUS"), PU_STATIC);
+	sttminus = (patch_t *) W_CacheLumpName("STTMINUS", PU_STATIC);
 }
 
 // ?
@@ -85,6 +86,7 @@ void STlib_drawNum(st_number_t * n, boolean refresh) {
 
 	int neg;
 
+	if (n->oldnum == *n->num && !refresh) return;
 	n->oldnum = *n->num;
 
 	neg = num < 0;

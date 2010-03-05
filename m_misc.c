@@ -24,27 +24,11 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <ctype.h>
-#include <errno.h>
+#include "ctype.h"
 
-// for mkdir:
-
-#ifdef _WIN32
-#include <io.h>
-#ifdef _MSC_VER
-#include <direct.h>
-#endif
-#else
-#include <sys/stat.h>
-#include <sys/types.h>
-#endif
-
+#include "fat32.h"
 #include "doomdef.h"
 #include "doomstat.h"
-
-#include "deh_main.h"
 
 #include "i_swap.h"
 #include "i_system.h"
@@ -54,58 +38,19 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
-//
-// Create a directory
-//
-
-void M_MakeDirectory(char *path)
-{
-#ifdef _WIN32
-	mkdir(path);
-#else
-	mkdir(path, 0755);
-#endif
-}
-
 // Check if a file exists
 
 boolean M_FileExists(char *filename)
 {
-	FILE *fstream;
+	struct FAT32_DIR dir;
 
-	fstream = fopen(filename, "r");
+	if (fat32_opendir("/", &dir))
+		return false;
 
-	if (fstream != NULL) {
-		fclose(fstream);
-		return true;
-	} else {
-		// If we can't open because the file is a directory, the 
-		// "file" exists at least!
+	if (fat32_fopen(&dir, filename, NULL))
+		return false;
 
-		return errno == EISDIR;
-	}
-}
-
-//
-// Determine the length of an open file.
-//
-
-long M_FileLength(FILE * handle)
-{
-	long savedpos;
-	long length;
-
-	// save the current position in the file
-	savedpos = ftell(handle);
-
-	// jump to the end and find the length
-	fseek(handle, 0, SEEK_END);
-	length = ftell(handle);
-
-	// go back to the old location
-	fseek(handle, savedpos, SEEK_SET);
-
-	return length;
+	return true;
 }
 
 //
@@ -114,6 +59,7 @@ long M_FileLength(FILE * handle)
 
 boolean M_WriteFile(char *name, void *source, int length)
 {
+#if 0
 	FILE *handle;
 	int count;
 
@@ -129,6 +75,8 @@ boolean M_WriteFile(char *name, void *source, int length)
 		return false;
 
 	return true;
+#endif
+	return false;
 }
 
 //
@@ -137,6 +85,7 @@ boolean M_WriteFile(char *name, void *source, int length)
 
 int M_ReadFile(char *name, byte ** buffer)
 {
+#if 0
 	FILE *handle;
 	int count, length;
 	byte *buf;
@@ -159,35 +108,6 @@ int M_ReadFile(char *name, byte ** buffer)
 
 	*buffer = buf;
 	return length;
-}
-
-// Returns the path to a temporary file of the given name, stored
-// inside the system temporary directory.
-//
-// The returned value must be freed with Z_Free after use.
-
-char *M_TempFile(char *s)
-{
-	char *result;
-	char *tempdir;
-
-#ifdef _WIN32
-
-	// Check the TEMP environment variable to find the location.
-
-	tempdir = getenv("TEMP");
-
-	if (tempdir == NULL) {
-		tempdir = ".";
-	}
-#else
-	// In Unix, just use /tmp.
-
-	tempdir = "/tmp";
 #endif
-
-	result = Z_Malloc(strlen(tempdir) + strlen(s) + 2, PU_STATIC, 0);
-	sprintf(result, "%s%c%s", tempdir, DIR_SEPARATOR, s);
-
-	return result;
+	I_Error("TODO");
 }

@@ -26,11 +26,11 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-#include <math.h>
-
 #include "doomdef.h"
-#include "d_net.h"
+
+#include "i_system.h"
+
+#include "s_sound.h"
 
 #include "m_bbox.h"
 #include "m_menu.h"
@@ -41,7 +41,7 @@
 // Fineangles in the SCREENWIDTH wide window.
 #define FIELDOFVIEW		2048
 
-int viewangleoffset;
+int viewangleoffset = 0;
 
 // increment every time a check is made
 int validcount = 1;
@@ -350,19 +350,6 @@ fixed_t R_PointToDist(fixed_t x, fixed_t y) {
 void R_InitPointToAngle(void)
 {
 	// UNUSED - now getting from tables.c
-#if 0
-	int i;
-	long t;
-	float f;
-//
-// slope (tangent) to angle lookup
-//
-	for (i = 0; i <= SLOPERANGE; i++) {
-		f = atan((float)i / SLOPERANGE) / (3.141592657 * 2);
-		t = 0xffffffff * f;
-		tantoangle[i] = t;
-	}
-#endif
 }
 
 //
@@ -381,24 +368,6 @@ fixed_t R_ScaleFromGlobalAngle(angle_t visangle)
 	int sineb;
 	fixed_t num;
 	int den;
-
-	// UNUSED
-#if 0
-	{
-		fixed_t dist;
-		fixed_t z;
-		fixed_t sinv;
-		fixed_t cosv;
-
-		sinv =
-		    finesine[(visangle - rw_normalangle) >> ANGLETOFINESHIFT];
-		dist = FixedDiv(rw_distance, sinv);
-		cosv = finecosine[(viewangle - visangle) >> ANGLETOFINESHIFT];
-		z = abs(FixedMul(dist, cosv));
-		scale = FixedDiv(projection, z);
-		return scale;
-	}
-#endif
 
 	anglea = ANG90 + (visangle - viewangle);
 	angleb = ANG90 + (visangle - rw_normalangle);
@@ -428,29 +397,6 @@ fixed_t R_ScaleFromGlobalAngle(angle_t visangle)
 void R_InitTables(void)
 {
 	// UNUSED: now getting from tables.c
-#if 0
-	int i;
-	float a;
-	float fv;
-	int t;
-
-	// viewangle tangent table
-	for (i = 0; i < FINEANGLES / 2; i++) {
-		a = (i - FINEANGLES / 4 + 0.5) * PI * 2 / FINEANGLES;
-		fv = FRACUNIT * tan(a);
-		t = fv;
-		finetangent[i] = t;
-	}
-
-	// finesine table
-	for (i = 0; i < 5 * FINEANGLES / 4; i++) {
-		// OPTIMIZE: mirror...
-		a = (i + 0.5) * PI * 2 / FINEANGLES;
-		t = FRACUNIT * sin(a);
-		finesine[i] = t;
-	}
-#endif
-
 }
 
 //
@@ -664,21 +610,21 @@ void R_ExecuteSetViewSize(void)
 void R_Init(void)
 {
 	R_InitData();
-	printf(".");
+	I_Print(".");
 	R_InitPointToAngle();
-	printf(".");
+	I_Print(".");
 	R_InitTables();
 	// viewwidth / viewheight / detailLevel are set by the defaults
-	printf(".");
+	I_Print(".");
 
 	R_SetViewSize(screenblocks, detailLevel);
 	R_InitPlanes();
-	printf(".");
+	I_Print(".");
 	R_InitLightTables();
-	printf(".");
+	I_Print(".");
 	R_InitSkyMap();
 	R_InitTranslationTables();
-	printf(".");
+	I_Print(".");
 
 	framecount = 0;
 }
@@ -709,14 +655,15 @@ subsector_t *R_PointInSubsector(fixed_t x, fixed_t y) {
 //
 // R_SetupFrame
 //
-void R_SetupFrame(player_t * player)
+void R_SetupFrame(player_t * player, fixed_t frac)
 {
 	int i;
 
 	viewplayer = player;
-	viewx = player->mo->x;
-	viewy = player->mo->y;
-	viewangle = player->mo->angle + viewangleoffset;
+	viewx = FixedMul(player->mo->x - player->prevx, frac) + player->prevx;
+	viewy = FixedMul(player->mo->y - player->prevy, frac) + player->prevy;
+	viewangle = FixedMul(player->mo->angle - player->prevan, frac)
+			+ player->prevan;
 	extralight = player->extralight;
 
 	viewz = player->viewz;
@@ -745,32 +692,21 @@ void R_SetupFrame(player_t * player)
 //
 // R_RenderView
 //
-void R_RenderPlayerView(player_t * player)
+void R_RenderPlayerView(player_t * player, fixed_t frac)
 {
-	R_SetupFrame(player);
+	R_SetupFrame(player, frac);
 
 	// Clear buffers.
 	R_ClearClipSegs();
 	R_ClearDrawSegs();
 	R_ClearPlanes();
 	R_ClearSprites();
-
-	// check for new console commands.
-	NetUpdate();
-
+	S_FeedAudio();
 	// The head node is the last node output.
 	R_RenderBSPNode(numnodes - 1);
-
-	// Check for new console commands.
-	NetUpdate();
-
+	S_FeedAudio();
 	R_DrawPlanes();
-
-	// Check for new console commands.
-	NetUpdate();
-
+	S_FeedAudio();
 	R_DrawMasked();
-
-	// Check for new console commands.
-	NetUpdate();
+	S_FeedAudio();
 }

@@ -23,14 +23,11 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <string.h>
-#include <stdlib.h>
-#include <math.h>
+#include "string.h"
 
 #include "doomdef.h"
 #include "doomstat.h"
 
-#include "deh_main.h"
 #include "deh_misc.h"
 
 #include "z_zone.h"
@@ -94,7 +91,7 @@ void G_DoSaveGame(void);
 
 // Gamestate the last time G_Ticker was called.
 
-gamestate_t oldgamestate;
+static gamestate_t oldgamestate;
 
 gameaction_t gameaction;
 gamestate_t gamestate;
@@ -108,48 +105,41 @@ int gamemap;
 int timelimit;
 
 boolean paused;
-boolean sendpause;		// send a pause event next tic 
-boolean sendsave;		// send a save event next tic 
+static boolean sendpause;		// send a pause event next tic 
+static boolean sendsave;		// send a save event next tic 
 boolean usergame;		// ok to save / end game 
 
-boolean timingdemo;		// if true, exit with report on completion 
-boolean nodrawers;		// for comparative timing purposes 
-boolean noblit;			// for comparative timing purposes 
-int starttime;			// for comparative timing purposes       
+boolean nodrawers = false;	// for comparative timing purposes 
 
-boolean viewactive;
+boolean viewactive = false;
 
 boolean deathmatch;		// only if started as net death 
 boolean netgame;		// only true if packets are broadcast 
 boolean playeringame[MAXPLAYERS];
 player_t players[MAXPLAYERS];
-
-boolean turbodetected[MAXPLAYERS];
+ticcmd_t netcmds[MAXPLAYERS][BACKUPTICS];
 
 int consoleplayer;		// player taking events and displaying 
 int displayplayer;		// view being displayed 
-int gametic;
+int gametic = 0;
 int levelstarttic;		// gametic at level start 
 int totalkills, totalitems, totalsecret;	// for intermission 
 
-char demoname[32];
-boolean demorecording;
-boolean longtics;		// cph's doom 1.91 longtics hack
-boolean lowres_turn;		// low resolution turning for longtics
-boolean demoplayback;
-boolean netdemo;
-byte *demobuffer;
-byte *demo_p;
-byte *demoend;
-boolean singledemo;		// quit after playing a demo from cmdline 
+static char demoname[32];
+boolean demorecording = false;
+static boolean longtics;		// cph's doom 1.91 longtics hack
+static boolean lowres_turn = false;		// low resolution turning for longtics
+boolean demoplayback = false;
+static byte *demobuffer;
+static byte *demo_p;
+static byte *demoend;
+boolean singledemo = false;	// quit after playing a demo from cmdline 
 
 boolean precache = true;	// if true, load all graphics at start 
 
-boolean testcontrols = false;	// Invoked by setup to test controls
-
 wbstartstruct_t wminfo;		// parms for world map / intermission 
 
-byte consistancy[MAXPLAYERS][BACKUPTICS];
+/*byte consistancy[MAXPLAYERS][BACKUPTICS];*/
 
 // 
 // Controls 
@@ -212,8 +202,8 @@ static boolean mousearray[4];
 static boolean *mousebuttons = &mousearray[1];	// allow [-1]
 
 // mouse values are used once 
-int mousex;
-int mousey;
+static int mousex;
+static int mousey;
 
 static int dclicktime;
 static boolean dclickstate;
@@ -233,105 +223,12 @@ static boolean *joybuttons = &joyarray[1];	// allow [-1]
 static int savegameslot;
 static char savedescription[32];
 
-static int testcontrols_mousespeed;
-
 #define	BODYQUESIZE	32
 
-mobj_t *bodyque[BODYQUESIZE];
-int bodyqueslot;
+static mobj_t *bodyque[BODYQUESIZE];
+static int bodyqueslot;
 
-int vanilla_savegame_limit = 1;
 int vanilla_demo_limit = 1;
-
-#define MOUSE_SPEED_BOX_WIDTH 16
-#define COLOR_RED    0xb0
-#define COLOR_BLACK  0x00
-#define COLOR_WHITE  0x04
-#define COLOR_YELLOW 0xe7
-
-void G_DrawMouseSpeedBox(void)
-{
-	extern int usemouse;
-	int i;
-	int box_x, box_y;
-	int original_speed;
-	int x, y;
-	int redline_x;
-	int linelen;
-	char *lumpname;
-	int color;
-
-	// If the mouse is turned off or acceleration is turned off, don't
-	// draw the box at all.
-
-	if (!usemouse || fabs(mouse_acceleration - 1) < 0.01) {
-		return;
-	}
-	// Calculate box position
-
-	box_x = SCREENWIDTH - MOUSE_SPEED_BOX_WIDTH * 8;
-	box_y = SCREENHEIGHT - 9;
-
-	// Draw the box.
-
-	x = box_x;
-
-	for (i = 0; i < MOUSE_SPEED_BOX_WIDTH; ++i) {
-		if (i == 0) {
-			lumpname = "M_LSLEFT";
-		} else if (i == MOUSE_SPEED_BOX_WIDTH - 1) {
-			lumpname = "M_LSRGHT";
-		} else {
-			lumpname = "M_LSCNTR";
-		}
-
-		V_DrawPatchDirect(x, box_y, 0,
-				  W_CacheLumpName(DEH_String(lumpname),
-						  PU_CACHE));
-		x += 8;
-	}
-
-	// Calculate the position of the red line.  This is 1/3 of the way
-	// along the box.
-
-	redline_x = (MOUSE_SPEED_BOX_WIDTH / 3) * 8;
-
-	// Undo acceleration and get back the original mouse speed
-
-	if (testcontrols_mousespeed < mouse_threshold) {
-		original_speed = testcontrols_mousespeed;
-	} else {
-		original_speed = testcontrols_mousespeed - mouse_threshold;
-		original_speed = (int)(original_speed / mouse_acceleration);
-		original_speed += mouse_threshold;
-	}
-
-	// Calculate line length
-
-	linelen = (original_speed * redline_x) / mouse_threshold;
-
-	// Draw horizontal "thermometer" 
-
-	for (x = 0; x < (MOUSE_SPEED_BOX_WIDTH - 1) * 8; ++x) {
-		if (x < linelen) {
-			if (x < redline_x) {
-				color = COLOR_WHITE;
-			} else {
-				color = COLOR_YELLOW;
-			}
-		} else {
-			color = COLOR_BLACK;
-		}
-
-		screens[0][(box_y - 4) * SCREENWIDTH + box_x + x + 1] = color;
-	}
-
-	// Draw red line
-
-	for (y = box_y - 8; y < box_y; ++y) {
-		screens[0][y * SCREENWIDTH + box_x + redline_x] = COLOR_RED;
-	}
-}
 
 int G_CmdChecksum(ticcmd_t * cmd)
 {
@@ -342,6 +239,31 @@ int G_CmdChecksum(ticcmd_t * cmd)
 		sum += ((int *)cmd)[i];
 
 	return sum;
+}
+
+void G_Init(void)
+{
+	int i;
+
+	for (i = 0; i < MAXPLAYERS; i++) {
+		memset(&players[i], 0, sizeof(player_t));
+		playeringame[i] = false;
+		memset(netcmds[i], 0, sizeof(netcmds[i]));
+	}
+	playeringame[0] = true;
+	consoleplayer = 0;
+
+	paused = false;
+	netgame = false;
+
+	// clear cmd building stuff
+
+	memset(gamekeydown, 0, sizeof(gamekeydown));
+	joyxmove = joyymove = 0;
+	mousex = mousey = 0;
+	sendpause = sendsave = false;
+	memset(mousearray, 0, sizeof(mousearray));
+	memset(joyarray, 0, sizeof(joyarray));
 }
 
 //
@@ -362,7 +284,7 @@ void G_BuildTiccmd(ticcmd_t * cmd)
 
 	memset(cmd, 0, sizeof(ticcmd_t));
 
-	cmd->consistancy = consistancy[consoleplayer][maketic % BACKUPTICS];
+	/*cmd->consistancy = consistancy[consoleplayer][maketic % BACKUPTICS];*/
 
 	strafe = gamekeydown[key_strafe] || mousebuttons[mousebstrafe]
 	    || joybuttons[joybstrafe];
@@ -380,7 +302,7 @@ void G_BuildTiccmd(ticcmd_t * cmd)
 	// on the keyboard and joystick
 	if (joyxmove < 0 || joyxmove > 0 || gamekeydown[key_right]
 	    || gamekeydown[key_left])
-		turnheld += ticdup;
+		turnheld++;
 	else
 		turnheld = 0;
 
@@ -482,7 +404,7 @@ void G_BuildTiccmd(ticcmd_t * cmd)
 			} else
 				dclicktime = 0;
 		} else {
-			dclicktime += ticdup;
+			dclicktime++;
 			if (dclicktime > 20) {
 				dclicks = 0;
 				dclickstate = 0;
@@ -502,7 +424,7 @@ void G_BuildTiccmd(ticcmd_t * cmd)
 			} else
 				dclicktime2 = 0;
 		} else {
-			dclicktime2 += ticdup;
+			dclicktime2++;
 			if (dclicktime2 > 20) {
 				dclicks2 = 0;
 				dclickstate2 = 0;
@@ -519,12 +441,6 @@ void G_BuildTiccmd(ticcmd_t * cmd)
 		side += mousex * 2;
 	else
 		cmd->angleturn -= mousex * 0x8;
-
-	if (mousex == 0) {
-		// No movement in the previous frame
-
-		testcontrols_mousespeed = 0;
-	}
 
 	mousex = mousey = 0;
 
@@ -576,9 +492,10 @@ void G_DoLoadLevel(void)
 	//  we look for an actual index, instead of simply
 	//  setting one.
 
-	skyflatnum = R_FlatNumForName(DEH_String(SKYFLATNAME));
+	skyflatnum = R_FlatNumForName(SKYFLATNAME);
 
 	levelstarttic = gametic;	// for time calculation
+	framecount = 0;
 
 	if (wipegamestate == GS_LEVEL)
 		wipegamestate = -1;	// force a wipe 
@@ -586,29 +503,18 @@ void G_DoLoadLevel(void)
 	gamestate = GS_LEVEL;
 
 	for (i = 0; i < MAXPLAYERS; i++) {
-		turbodetected[i] = false;
 		if (playeringame[i] && players[i].playerstate == PST_DEAD)
 			players[i].playerstate = PST_REBORN;
 		memset(players[i].frags, 0, sizeof(players[i].frags));
 	}
 
 	P_SetupLevel(gameepisode, gamemap, 0, gameskill);
+	bodyqueslot = 0;
 	displayplayer = consoleplayer;	// view the guy you are playing    
 	gameaction = ga_nothing;
 	Z_CheckHeap();
 
-	// clear cmd building stuff
-
-	memset(gamekeydown, 0, sizeof(gamekeydown));
-	joyxmove = joyymove = 0;
-	mousex = mousey = 0;
-	sendpause = sendsave = paused = false;
-	memset(mousebuttons, 0, sizeof(mousebuttons));
-	memset(joybuttons, 0, sizeof(joybuttons));
-
-	if (testcontrols) {
-		players[consoleplayer].message = "Press escape to quit.";
-	}
+	paused = false;
 }
 
 static void SetJoyButtons(unsigned int buttons_mask)
@@ -652,12 +558,6 @@ boolean G_Responder(event_t * ev)
 	}
 
 	if (gamestate == GS_LEVEL) {
-#if 0
-		if (devparm && ev->type == ev_keydown && ev->data1 == ';') {
-			G_DeathMatchSpawnPlayer(0);
-			return true;
-		}
-#endif
 		if (HU_Responder(ev))
 			return true;	// chat ate the event 
 		if (ST_Responder(ev))
@@ -669,15 +569,6 @@ boolean G_Responder(event_t * ev)
 	if (gamestate == GS_FINALE) {
 		if (F_Responder(ev))
 			return true;	// finale ate the event 
-	}
-
-	if (testcontrols && ev->type == ev_mouse) {
-		// If we are invoked by setup to test the controls, save the 
-		// mouse speed so that we can display it on-screen.
-		// Perform a low pass filter on this so that the thermometer 
-		// appears to move smoothly.
-
-		testcontrols_mousespeed = abs(ev->data2);
 	}
 
 	switch (ev->type) {
@@ -760,8 +651,7 @@ void G_Ticker(void)
 			break;
 		case ga_screenshot:
 			V_ScreenShot();
-			players[consoleplayer].message =
-			    DEH_String("screen shot");
+			players[consoleplayer].message = "screen shot";
 			gameaction = ga_nothing;
 			break;
 		case ga_nothing:
@@ -769,45 +659,23 @@ void G_Ticker(void)
 		}
 	}
 
-	// get commands, check consistancy,
-	// and build new consistancy check
-	buf = (gametic / ticdup) % BACKUPTICS;
+	buf = gametic % BACKUPTICS;
 
 	for (i = 0; i < MAXPLAYERS; i++) {
 		if (playeringame[i]) {
 			cmd = &players[i].cmd;
 
-			memcpy(cmd, &netcmds[i][buf], sizeof(ticcmd_t));
-
 			if (demoplayback)
 				G_ReadDemoTiccmd(cmd);
+			else if (netgame)
+				memcpy(cmd, &netcmds[i][buf], sizeof(ticcmd_t));
+			else 
+				G_BuildTiccmd(cmd);
+
 			if (demorecording)
 				G_WriteDemoTiccmd(cmd);
 
-			// check for turbo cheats
-
-			// check ~ 4 seconds whether to display the turbo message. 
-			// store if the turbo threshold was exceeded in any tics
-			// over the past 4 seconds.  offset the checking period
-			// for each player so messages are not displayed at the
-			// same time.
-
-			if (cmd->forwardmove > TURBOTHRESHOLD) {
-				turbodetected[i] = true;
-			}
-
-			if ((gametic & 31) == 0
-			    && ((gametic >> 5) % MAXPLAYERS) == i
-			    && turbodetected[i]) {
-				static char turbomessage[80];
-				extern char *player_names[4];
-				sprintf(turbomessage, "%s is turbo!",
-					player_names[i]);
-				players[consoleplayer].message = turbomessage;
-				turbodetected[i] = false;
-			}
-
-			if (netgame && !netdemo && !(gametic % ticdup)) {
+			/*if (netgame) {
 				if (gametic > BACKUPTICS
 				    && consistancy[i][buf] != cmd->consistancy)
 				{
@@ -820,7 +688,7 @@ void G_Ticker(void)
 					consistancy[i][buf] = players[i].mo->x;
 				else
 					consistancy[i][buf] = rndindex;
-			}
+			}*/
 		}
 	}
 
@@ -881,6 +749,7 @@ void G_Ticker(void)
 		D_PageTicker();
 		break;
 	}
+	gametic++;
 }
 
 //
@@ -1105,8 +974,7 @@ int cpars[32] = {
 //
 // G_DoCompleted 
 //
-boolean secretexit;
-extern char *pagename;
+static boolean secretexit;
 
 void G_ExitLevel(void)
 {
@@ -1159,7 +1027,7 @@ void G_DoCompleted(void)
 			}
 		}
 	}
-//#if 0  Hmmm - why?
+
 	if ((gamemap == 8)
 	    && (gamemode != commercial)) {
 		// victory 
@@ -1173,7 +1041,6 @@ void G_DoCompleted(void)
 		for (i = 0; i < MAXPLAYERS; i++)
 			players[i].didsecret = true;
 	}
-//#endif
 
 	wminfo.didsecret = players[consoleplayer].didsecret;
 	wminfo.epsd = gameepisode - 1;
@@ -1287,7 +1154,6 @@ void G_DoWorldDone(void)
 // G_InitFromSavegame
 // Can be called by the startup code or the menu task. 
 //
-extern boolean setsizeneeded;
 void R_ExecuteSetViewSize(void);
 
 char savename[256];
@@ -1302,20 +1168,16 @@ void G_LoadGame(char *name)
 
 void G_DoLoadGame(void)
 {
-	int savedleveltime;
+	int savedleveltime, size;
 
 	gameaction = ga_nothing;
 
-	save_stream = fopen(savename, "rb");
+	size = M_ReadFile(savename, &savebuffer);
+	save_p = savebuffer;
+	saveend = savebuffer + size;
 
-	if (save_stream == NULL) {
-		return;
-	}
-
-	if (!P_ReadSaveGameHeader()) {
-		fclose(save_stream);
-		return;
-	}
+	if (!P_ReadSaveGameHeader())
+		I_Error("Bad savegame");
 
 	savedleveltime = leveltime;
 
@@ -1333,13 +1195,10 @@ void G_DoLoadGame(void)
 	if (!P_ReadSaveGameEOF())
 		I_Error("Bad savegame");
 
-	fclose(save_stream);
+	Z_Free(savebuffer);
 
 	if (setsizeneeded)
 		R_ExecuteSetViewSize();
-
-	// draw the pattern into the back screen
-	R_FillBackScreen();
 }
 
 //
@@ -1356,21 +1215,14 @@ void G_SaveGame(int slot, char *description) {
 void G_DoSaveGame(void)
 {
 	char *savegame_file;
-	char *temp_savegame_file;
+	int maxsize = SAVEGAMESIZE;
 
-	temp_savegame_file = P_TempSaveGameFile();
 	savegame_file = P_SaveGameFile(savegameslot);
 
-	// Open the savegame file for writing.  We write to a temporary file
-	// and then rename it at the end if it was successfully written.
-	// This prevents an existing savegame from being overwritten by 
-	// a corrupted one, or if a savegame buffer overrun occurs.
+	savebuffer = Z_Malloc(maxsize, PU_STATIC, NULL);
+	saveend = savebuffer + maxsize;
 
-	save_stream = fopen(temp_savegame_file, "wb");
-
-	if (save_stream == NULL) {
-		return;
-	}
+	save_p = savebuffer;
 
 	P_WriteSaveGameHeader(savedescription);
 
@@ -1381,29 +1233,13 @@ void G_DoSaveGame(void)
 
 	P_WriteSaveGameEOF();
 
-	// Enforce the same savegame size limit as in Vanilla Doom, 
-	// except if the vanilla_savegame_limit setting is turned off.
-
-	if (vanilla_savegame_limit && ftell(save_stream) > SAVEGAMESIZE) {
-		I_Error("Savegame buffer overrun");
-	}
-	// Finish up, close the savegame file.
-
-	fclose(save_stream);
-
-	// Now rename the temporary savegame file to the actual savegame
-	// file, overwriting the old savegame if there was one there.
-
-	remove(savegame_file);
-	rename(temp_savegame_file, savegame_file);
+	M_WriteFile(savegame_file, savebuffer, save_p - savebuffer);
+	Z_Free(savebuffer);
 
 	gameaction = ga_nothing;
 	strcpy(savedescription, "");
 
-	players[consoleplayer].message = DEH_String(GGSAVED);
-
-	// draw the pattern into the back screen
-	R_FillBackScreen();
+	players[consoleplayer].message = GGSAVED;
 }
 
 //
@@ -1425,9 +1261,9 @@ void G_DeferedInitNew(skill_t skill, int episode, int map) {
 void G_DoNewGame(void)
 {
 	demoplayback = false;
-	netdemo = false;
 	netgame = false;
 	deathmatch = false;
+	playeringame[0] = true;
 	playeringame[1] = playeringame[2] = playeringame[3] = 0;
 	respawnparm = false;
 	fastparm = false;
@@ -1436,9 +1272,6 @@ void G_DoNewGame(void)
 	G_InitNew(d_skill, d_episode, d_map);
 	gameaction = ga_nothing;
 }
-
-// The sky texture to be used instead of the F_SKY1 dummy.
-extern int skytexture;
 
 void G_InitNew(skill_t skill, int episode, int map) {
 	char *skytexturename;
@@ -1547,7 +1380,7 @@ void G_InitNew(skill_t skill, int episode, int map) {
 		}
 	}
 
-	skytexturename = DEH_String(skytexturename);
+	skytexturename = skytexturename;
 
 	skytexture = R_TextureNumForName(skytexturename);
 
@@ -1562,6 +1395,7 @@ void G_InitNew(skill_t skill, int episode, int map) {
 void G_ReadDemoTiccmd(ticcmd_t * cmd)
 {
 	if (*demo_p == DEMOMARKER) {
+		I_Print("DEMOMARKER\n");
 		// end of demo data stream 
 		G_CheckDemoStatus();
 		return;
@@ -1736,41 +1570,6 @@ void G_DeferedPlayDemo(char *name)
 	gameaction = ga_playdemo;
 }
 
-// Generate a string describing a demo version
-
-static char *DemoVersionDescription(int version)
-{
-	static char resultbuf[16];
-
-	switch (version) {
-	case 104:
-		return "v1.4";
-	case 105:
-		return "v1.5";
-	case 106:
-		return "v1.6/v1.666";
-	case 107:
-		return "v1.7/v1.7a";
-	case 108:
-		return "v1.8";
-	case 109:
-		return "v1.9";
-	default:
-		break;
-	}
-
-	// Unknown version.  Perhaps this is a pre-v1.4 IWAD?  If the version
-	// byte is in the range 0-4 then it can be a v1.0-v1.2 demo.
-
-	if (version >= 0 && version <= 4) {
-		return "v1.0/v1.1/v1.2";
-	} else {
-		sprintf(resultbuf, "%i.%i (unknown)", version / 100,
-			version % 100);
-		return resultbuf;
-	}
-}
-
 void G_DoPlayDemo(void)
 {
 	skill_t skill;
@@ -1782,22 +1581,13 @@ void G_DoPlayDemo(void)
 
 	demoversion = *demo_p++;
 
+	longtics = false;
 	if (demoversion == DOOM_VERSION) {
-		longtics = false;
 	} else if (demoversion == DOOM_191_VERSION) {
 		// demo recorded with cph's modified "v1.91" doom exe
 		longtics = true;
 	} else {
-		char *message = "Demo is from a different game version!\n"
-		    "(read %i, should be %i)\n"
-		    "\n"
-		    "*** You may need to upgrade your version "
-		    "of Doom to v1.9. ***\n"
-		    "    See: http://doomworld.com/files/patches.shtml\n"
-		    "    This appears to be %s.";
-
-		I_Error(message, demoversion, DOOM_VERSION,
-			DemoVersionDescription(demoversion));
+		/*I_Error("Demo is from a different game version!\n"); */
 	}
 
 	skill = *demo_p++;
@@ -1812,51 +1602,13 @@ void G_DoPlayDemo(void)
 	for (i = 0; i < MAXPLAYERS; i++)
 		playeringame[i] = *demo_p++;
 
-	//!
-	// @category demo
-	// 
-	// Play back a demo recorded in a netgame with a single player.
-	//
-
-	if (playeringame[1] || M_CheckParm("-netdemo") > 0) {
-		netgame = true;
-		netdemo = true;
-	}
 	// don't spend a lot of time in loadlevel 
 	precache = false;
 	G_InitNew(skill, episode, map);
 	precache = true;
-	starttime = I_GetTime();
 
 	usergame = false;
 	demoplayback = true;
-}
-
-//
-// G_TimeDemo 
-//
-void G_TimeDemo(char *name)
-{
-	//!
-	// @vanilla 
-	//
-	// Disable rendering the screen entirely.
-	//
-
-	nodrawers = M_CheckParm("-nodraw");
-
-	//!
-	// @vanilla
-	//
-	// Disable blitting the screen.
-	//
-
-	noblit = M_CheckParm("-noblit");
-	timingdemo = true;
-	singletics = true;
-
-	defdemoname = name;
-	gameaction = ga_playdemo;
 }
 
 /* 
@@ -1873,26 +1625,9 @@ boolean G_CheckDemoStatus(void)
 {
 	int endtime;
 
-	if (timingdemo) {
-		float fps;
-		int realtics;
-
-		endtime = I_GetTime();
-		realtics = endtime - starttime;
-		fps = ((float)gametic * TICRATE) / realtics;
-
-		// Prevent recursive calls
-		timingdemo = false;
-		demoplayback = false;
-
-		I_Error("timed %i gametics in %i realtics (%f fps)",
-			gametic, realtics, fps);
-	}
-
 	if (demoplayback) {
 		W_ReleaseLumpName(defdemoname);
 		demoplayback = false;
-		netdemo = false;
 		netgame = false;
 		deathmatch = false;
 		playeringame[1] = playeringame[2] = playeringame[3] = 0;

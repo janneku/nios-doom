@@ -75,6 +75,8 @@ typedef struct player_s {
 	playerstate_t playerstate;
 	ticcmd_t cmd;
 
+	fixed_t prevx, prevy, prevan;
+
 	// Determine POV,
 	//  including viewpoint bobbing during movement.
 	// Focal origin above r.z

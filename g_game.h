@@ -36,6 +36,8 @@
 //
 void G_DeathMatchSpawnPlayer(int playernum);
 
+void G_Init(void);
+
 void G_InitNew(skill_t skill, int episode, int map);
 
 // Can be called by the startup code or M_Responder.
@@ -60,7 +62,6 @@ void G_RecordDemo(char *name);
 void G_BeginRecording(void);
 
 void G_PlayDemo(char *name);
-void G_TimeDemo(char *name);
 boolean G_CheckDemoStatus(void);
 
 void G_ExitLevel(void);
@@ -76,7 +77,5 @@ void G_Ticker(void);
 boolean G_Responder(event_t * ev);
 
 void G_ScreenShot(void);
-
-void G_DrawMouseSpeedBox(void);
 
 #endif

@@ -24,8 +24,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdlib.h>
-
 #include "i_system.h"
 
 #include "doomdef.h"
@@ -37,16 +35,16 @@
 // OPTIMIZE: closed two sided lines as single sided
 
 // True if any of the segs textures might be visible.
-boolean segtextured;
+static boolean segtextured;
 
 // False if the back side is the same plane.
-boolean markfloor;
-boolean markceiling;
+static boolean markfloor;
+static boolean markceiling;
 
-boolean maskedtexture;
-int toptexture;
-int bottomtexture;
-int midtexture;
+static boolean maskedtexture;
+static int toptexture;
+static int bottomtexture;
+static int midtexture;
 
 angle_t rw_normalangle;
 // angle to line origin
@@ -57,30 +55,30 @@ int rw_angle1;
 //
 int rw_x;
 int rw_stopx;
-angle_t rw_centerangle;
-fixed_t rw_offset;
+static angle_t rw_centerangle;
+static fixed_t rw_offset;
 fixed_t rw_distance;
-fixed_t rw_scale;
-fixed_t rw_scalestep;
-fixed_t rw_midtexturemid;
-fixed_t rw_toptexturemid;
-fixed_t rw_bottomtexturemid;
+static fixed_t rw_scale;
+static fixed_t rw_scalestep;
+static fixed_t rw_midtexturemid;
+static fixed_t rw_toptexturemid;
+static fixed_t rw_bottomtexturemid;
 
-int worldtop;
-int worldbottom;
-int worldhigh;
-int worldlow;
+static int worldtop;
+static int worldbottom;
+static int worldhigh;
+static int worldlow;
 
-fixed_t pixhigh;
-fixed_t pixlow;
-fixed_t pixhighstep;
-fixed_t pixlowstep;
+static fixed_t pixhigh;
+static fixed_t pixlow;
+static fixed_t pixhighstep;
+static fixed_t pixlowstep;
 
-fixed_t topfrac;
-fixed_t topstep;
+static fixed_t topfrac;
+static fixed_t topstep;
 
-fixed_t bottomfrac;
-fixed_t bottomstep;
+static fixed_t bottomfrac;
+static fixed_t bottomstep;
 
 lighttable_t **walllights;
 

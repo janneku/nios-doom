@@ -23,7 +23,7 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ctype.h>
+#include "ctype.h"
 
 #include "doomdef.h"
 
@@ -33,6 +33,8 @@
 #include "hu_lib.h"
 #include "r_local.h"
 #include "r_draw.h"
+
+#define FG		0
 
 // boolean : whether the screen is always erased
 #define noterased viewwindowx
@@ -65,7 +67,7 @@ boolean HUlib_addCharToTextLine(hu_textline_t * t, char ch) {
 	else {
 		t->l[t->len++] = ch;
 		t->l[t->len] = 0;
-		t->needsupdate = 4;
+		t->needsupdate = true;
 		return true;
 	}
 
@@ -78,7 +80,7 @@ boolean HUlib_delCharFromTextLine(hu_textline_t * t)
 		return false;
 	else {
 		t->l[--t->len] = 0;
-		t->needsupdate = 4;
+		t->needsupdate = true;
 		return true;
 	}
 
@@ -114,6 +116,7 @@ void HUlib_drawTextLine(hu_textline_t * l, boolean drawcursor) {
 	}
 }
 
+#if 0
 // sorta called by HU_Erase and just better darn get things straight
 void HUlib_eraseTextLine(hu_textline_t * l)
 {
@@ -146,6 +149,7 @@ void HUlib_eraseTextLine(hu_textline_t * l)
 		l->needsupdate--;
 
 }
+#endif
 
 void HUlib_initSText
     (hu_stext_t * s,
@@ -212,18 +216,19 @@ void HUlib_drawSText(hu_stext_t * s)
 
 }
 
-void HUlib_eraseSText(hu_stext_t * s)
+boolean HUlib_eraseSText(hu_stext_t * s)
 {
-
+	boolean result = (s->laston && !*s->on);
 	int i;
 
 	for (i = 0; i < s->h; i++) {
-		if (s->laston && !*s->on)
-			s->l[i].needsupdate = 4;
-		HUlib_eraseTextLine(&s->l[i]);
+		if (s->l[i].needsupdate) {
+			s->l[i].needsupdate = false;
+			result = true;
+		}
 	}
 	s->laston = *s->on;
-
+	return result;
 }
 
 void HUlib_initIText
@@ -288,10 +293,10 @@ void HUlib_drawIText(hu_itext_t * it)
 
 }
 
-void HUlib_eraseIText(hu_itext_t * it)
+boolean HUlib_eraseIText(hu_itext_t * it)
 {
-	if (it->laston && !*it->on)
-		it->l.needsupdate = 4;
-	HUlib_eraseTextLine(&it->l);
+	boolean result = (it->laston && !*it->on) || it->l.needsupdate;
+	it->l.needsupdate = false;
 	it->laston = *it->on;
+	return result;
 }

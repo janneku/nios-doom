@@ -24,11 +24,8 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
-#include <stdlib.h>
 
 #include "dstrings.h"
-#include "deh_main.h"
 #include "i_system.h"
 #include "z_zone.h"
 #include "p_local.h"
@@ -41,58 +38,73 @@
 #define SAVEGAME_EOF 0x1d
 #define VERSIONSIZE 16
 
-FILE *save_stream;
-int savegamelength;
+int vanilla_savegame_limit = 1;
 
-// Get the filename of a temporary file to write the savegame to.  After
-// the file has been successfully saved, it will be renamed to the 
-// real file.
-
-char *P_TempSaveGameFile(void)
-{
-	static char *filename = NULL;
-
-	if (filename == NULL) {
-		filename = malloc(strlen(savegamedir) + 32);
-	}
-
-	sprintf(filename, "%stemp.dsg", savegamedir);
-
-	return filename;
-}
+byte *savebuffer;
+byte *save_p;
+byte *saveend;
 
 // Get the filename of the save game file to use for the specified slot.
 
 char *P_SaveGameFile(int slot)
 {
-	static char *filename = NULL;
-	char basename[32];
+	static char filename[32];
 
-	if (filename == NULL) {
-		filename = malloc(strlen(savegamedir) + 32);
-	}
-
-	sprintf(basename, DEH_String(SAVEGAMENAME "%d.dsg"), slot);
-
-	sprintf(filename, "%s%s", savegamedir, basename);
+	format_number(filename, SAVEGAMENAME "%d.dsg", slot, 10);
 
 	return filename;
+}
+
+static void IncreaseSaveBuffer(void)
+{
+	int current_length;
+	byte *new_savebuffer;
+	byte *new_savep;
+	int new_length;
+
+	// Find the current size
+
+	current_length = saveend - savebuffer;
+
+	// Generate a new buffer twice the size
+	new_length = current_length * 2;
+
+	new_savebuffer = Z_Malloc(new_length, PU_STATIC, 0);
+	new_savep = new_savebuffer + (save_p - savebuffer);
+
+	// Copy over the old data
+
+	memcpy(new_savebuffer, savebuffer, current_length);
+
+	// Free the old buffer and point the save pointers at the new buffer.
+
+	Z_Free(savebuffer);
+
+	savebuffer = new_savebuffer;
+	save_p = new_savep;
+	saveend = savebuffer + new_length;
 }
 
 // Endian-safe integer read/write functions
 
 static byte saveg_read8(void)
 {
-	byte result;
-
-	fread(&result, 1, 1, save_stream);
-
-	return result;
+	if (save_p >= saveend) {
+		I_Error("Savegame buffer overrun");
+	}
+	return *save_p++;
 }
 
 static void saveg_write8(byte value)
 {
-	fwrite(&value, 1, 1, save_stream);
+	if (save_p >= saveend) {
+		if (vanilla_savegame_limit) {
+			I_Error("Savegame buffer overrun");
+		} else {
+			IncreaseSaveBuffer();
+		}
+	}
+	*save_p++ = value;
 }
 
 static short saveg_read16(void)
@@ -135,13 +147,10 @@ static void saveg_write32(int value)
 
 static void saveg_read_pad(void)
 {
-	unsigned long pos;
 	int padding;
 	int i;
 
-	pos = ftell(save_stream);
-
-	padding = (4 - (pos & 3)) & 3;
+	padding = (4 - ((int)(save_p - savebuffer) & 3)) & 3;
 
 	for (i = 0; i < padding; ++i) {
 		saveg_read8();
@@ -150,13 +159,10 @@ static void saveg_read_pad(void)
 
 static void saveg_write_pad(void)
 {
-	unsigned long pos;
 	int padding;
 	int i;
 
-	pos = ftell(save_stream);
-
-	padding = (4 - (pos & 3)) & 3;
+	padding = (4 - ((int)(save_p - savebuffer) & 3)) & 3;
 
 	for (i = 0; i < padding; ++i) {
 		saveg_write8(0);
@@ -1310,7 +1316,7 @@ void P_WriteSaveGameHeader(char *description)
 		saveg_write8(0);
 
 	memset(name, 0, sizeof(name));
-	sprintf(name, "version %i", DOOM_VERSION);
+	format_number(name, "version %i", DOOM_VERSION, 10);
 
 	for (i = 0; i < VERSIONSIZE; ++i)
 		saveg_write8(name[i]);
@@ -1347,7 +1353,7 @@ boolean P_ReadSaveGameHeader(void)
 		read_vcheck[i] = saveg_read8();
 
 	memset(vcheck, 0, sizeof(vcheck));
-	sprintf(vcheck, "version %i", DOOM_VERSION);
+	format_number(vcheck, "version %i", DOOM_VERSION, 10);
 	if (strcmp(read_vcheck, vcheck) != 0)
 		return false;	// bad version 
 

@@ -32,7 +32,6 @@
 #include "doomdef.h"
 #include "doomdata.h"
 
-#include "deh_main.h"
 #include "m_bbox.h"
 #include "i_swap.h"
 #include "i_video.h"
@@ -41,10 +40,7 @@
 #include "w_wad.h"
 #include "z_zone.h"
 
-// Each screen is [SCREENWIDTH*SCREENHEIGHT]; 
-byte *screens[5];
-
-int dirtybox[4];
+byte *screens[2];
 
 // Now where did these came from?
 const byte gammatable[5][256] = {
@@ -201,15 +197,6 @@ const byte gammatable[5][256] = {
 int usegamma = 0;
 
 //
-// V_MarkRect 
-// 
-void
- V_MarkRect(int x, int y, int width, int height) {
-	M_AddToBox(dirtybox, x, y);
-	M_AddToBox(dirtybox, x + width - 1, y + height - 1);
-}
-
-//
 // V_CopyRect 
 // 
 void
@@ -232,8 +219,6 @@ void
 		I_Error("Bad V_CopyRect");
 	}
 #endif
-	V_MarkRect(destx, desty, width, height);
-
 	src = screens[srcscrn] + SCREENWIDTH * srcy + srcx;
 	dest = screens[destscrn] + SCREENWIDTH * desty + destx;
 
@@ -269,9 +254,6 @@ void
 		I_Error("Bad V_DrawPatch");
 	}
 #endif
-
-	if (!scrn)
-		V_MarkRect(x, y, SHORT(patch->width), SHORT(patch->height));
 
 	col = 0;
 	desttop = screens[scrn] + y * SCREENWIDTH + x;
@@ -325,9 +307,6 @@ void
 	}
 #endif
 
-	if (!scrn)
-		V_MarkRect(x, y, SHORT(patch->width), SHORT(patch->height));
-
 	col = 0;
 	desttop = screens[scrn] + y * SCREENWIDTH + x;
 
@@ -361,58 +340,6 @@ void
 void
  V_DrawPatchDirect(int x, int y, int scrn, patch_t * patch) {
 	V_DrawPatch(x, y, scrn, patch);
-
-	/*
-	   int              count;
-	   int              col; 
-	   column_t*        column; 
-	   byte*    desttop;
-	   byte*    dest;
-	   byte*    source; 
-	   int              w; 
-
-	   y -= SHORT(patch->topoffset); 
-	   x -= SHORT(patch->leftoffset); 
-
-	   #ifdef RANGECHECK 
-	   if (x<0
-	   ||x+SHORT(patch->width) >SCREENWIDTH
-	   || y<0
-	   || y+SHORT(patch->height)>SCREENHEIGHT 
-	   || (unsigned)scrn>4)
-	   {
-	   I_Error ("Bad V_DrawPatchDirect");
-	   }
-	   #endif 
-
-	   //       V_MarkRect (x, y, SHORT(patch->width), SHORT(patch->height)); 
-	   desttop = destscreen + y*SCREENWIDTH/4 + (x>>2); 
-
-	   w = SHORT(patch->width); 
-	   for ( col = 0 ; col<w ; col++) 
-	   { 
-	   outp (SC_INDEX+1,1<<(x&3)); 
-	   column = (column_t *)((byte *)patch + LONG(patch->columnofs[col])); 
-
-	   // step through the posts in a column 
-
-	   while (column->topdelta != 0xff ) 
-	   { 
-	   source = (byte *)column + 3; 
-	   dest = desttop + column->topdelta*SCREENWIDTH/4; 
-	   count = column->length; 
-
-	   while (count--) 
-	   { 
-	   *dest = *source++; 
-	   dest += SCREENWIDTH/4; 
-	   } 
-	   column = (column_t *)(  (byte *)column + column->length 
-	   + 4 ); 
-	   } 
-	   if ( ((++x)&3) == 0 ) 
-	   desttop++;       // go to next byte, not next plane 
-	   } */
 }
 
 //
@@ -430,8 +357,6 @@ void
 		I_Error("Bad V_DrawBlock");
 	}
 #endif
-
-	V_MarkRect(x, y, width, height);
 
 	dest = screens[scrn] + y * SCREENWIDTH + x;
 
@@ -472,16 +397,7 @@ void
 // 
 void V_Init(void)
 {
-	int i;
-	byte *base;
-
-	// stick these in low dos memory on PCs
-
-	base = Z_Malloc(SCREENWIDTH * SCREENHEIGHT * 4, PU_STATIC, NULL);
-
-	for (i = 0; i < 4; i++) {
-		screens[i] = base + i * SCREENWIDTH * SCREENHEIGHT;
-	}
+	screens[0] = Z_Malloc(SCREENWIDTH * SCREENHEIGHT, PU_STATIC, NULL);
 }
 
 //
@@ -574,12 +490,7 @@ void WritePCXfile(char *filename, byte * data,
 void V_ScreenShot(void)
 {
 	int i;
-	byte *linear;
 	char lbmname[12];
-
-	// munge planar buffer to linear
-	linear = screens[2];
-	I_ReadScreen(linear);
 
 	// find a file name to save it to
 	strcpy(lbmname, "DOOM00.pcx");
@@ -594,7 +505,7 @@ void V_ScreenShot(void)
 		I_Error("V_ScreenShot: Couldn't create a PCX");
 
 	// save the pcx file
-	WritePCXfile(lbmname, linear,
+	WritePCXfile(lbmname, screens[0],
 		     SCREENWIDTH, SCREENHEIGHT,
-		     W_CacheLumpName(DEH_String("PLAYPAL"), PU_CACHE));
+		     W_CacheLumpName("PLAYPAL", PU_CACHE));
 }

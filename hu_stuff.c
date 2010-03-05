@@ -23,13 +23,12 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <ctype.h>
+#include "ctype.h"
 
 #include "doomdef.h"
 
 #include "z_zone.h"
 
-#include "deh_main.h"
 #include "i_swap.h"
 #include "i_video.h"
 
@@ -324,13 +323,19 @@ void HU_Init(void)
 
 	int i;
 	int j;
-	char buffer[9];
+	char buffer[15];
 
 	// load the heads-up font
 	j = HU_FONTSTART;
 	for (i = 0; i < HU_FONTSIZE; i++) {
-		sprintf(buffer, DEH_String("STCFN%.3d"), j++);
+		if (j < 10)
+			format_number(buffer, "STCFN00%d", j, 10);
+		else if (j < 100)
+			format_number(buffer, "STCFN0%d", j, 10);
+		else
+			format_number(buffer, "STCFN%d", j, 10);
 		hu_font[i] = (patch_t *) W_CacheLumpName(buffer, PU_STATIC);
+		j++;
 	}
 
 }
@@ -388,9 +393,6 @@ void HU_Start(void)
 	if (gameversion == exe_chex) {
 		s = HU_TITLE_CHEX;
 	}
-	// dehacked substitution to get modified level name
-
-	s = DEH_String(s);
 
 	while (*s)
 		HUlib_addCharToTextLine(&w_title, *(s++));
@@ -417,12 +419,10 @@ void HU_Drawer(void)
 
 }
 
-void HU_Erase(void)
+boolean HU_Erase(void)
 {
-
-	HUlib_eraseSText(&w_message);
-	HUlib_eraseIText(&w_chat);
-	HUlib_eraseTextLine(&w_title);
+	return HUlib_eraseSText(&w_message) ||
+		HUlib_eraseIText(&w_chat);
 
 }
 
@@ -472,8 +472,7 @@ void HU_Ticker(void)
 							HU_BROADCAST)) {
 							HUlib_addMessageToSText
 							    (&w_message,
-							     DEH_String
-							     (player_names[i]),
+							     player_names[i],
 							     w_inputbuffer[i].l.
 							     l);
 
@@ -510,7 +509,7 @@ static int tail = 0;
 void HU_queueChatChar(char c)
 {
 	if (((head + 1) & (QUEUESIZE - 1)) == tail) {
-		plr->message = DEH_String(HUSTR_MSGU);
+		plr->message = HUSTR_MSGU;
 	} else {
 		chatchars[head] = c;
 		head = (head + 1) & (QUEUESIZE - 1);
@@ -559,7 +558,7 @@ boolean HU_Responder(event_t * ev)
 	if (ev->data1 == KEY_RSHIFT) {
 		shiftdown = ev->type == ev_keydown;
 		return false;
-	} else if (ev->data1 == KEY_RALT || ev->data1 == KEY_LALT) {
+	} else if (ev->data1 == KEY_RALT) {
 		altdown = ev->type == ev_keydown;
 		return false;
 	}
@@ -589,24 +588,19 @@ boolean HU_Responder(event_t * ev)
 						num_nobrainers++;
 						if (num_nobrainers < 3)
 							plr->message =
-							    DEH_String
-							    (HUSTR_TALKTOSELF1);
+							    HUSTR_TALKTOSELF1;
 						else if (num_nobrainers < 6)
 							plr->message =
-							    DEH_String
-							    (HUSTR_TALKTOSELF2);
+							    HUSTR_TALKTOSELF2;
 						else if (num_nobrainers < 9)
 							plr->message =
-							    DEH_String
-							    (HUSTR_TALKTOSELF3);
+							    HUSTR_TALKTOSELF3;
 						else if (num_nobrainers < 32)
 							plr->message =
-							    DEH_String
-							    (HUSTR_TALKTOSELF4);
+							    HUSTR_TALKTOSELF4;
 						else
 							plr->message =
-							    DEH_String
-							    (HUSTR_TALKTOSELF5);
+							    HUSTR_TALKTOSELF5;
 					}
 				}
 			}
@@ -618,7 +612,6 @@ boolean HU_Responder(event_t * ev)
 			c = c - '0';
 			if (c > 9)
 				return false;
-			// fprintf(stderr, "got here\n");
 			macromessage = chat_macros[c];
 
 			// kill last message with a '\n'
@@ -635,10 +628,8 @@ boolean HU_Responder(event_t * ev)
 			plr->message = lastmessage;
 			eatkey = true;
 		} else {
-			if (vanilla_keyboard_mapping) {
-				if (shiftdown || (c >= 'a' && c <= 'z')) {
-					c = shiftxform[c];
-				}
+			if (shiftdown || (c >= 'a' && c <= 'z')) {
+				c = shiftxform[c];
 			}
 
 			eatkey = HUlib_keyInIText(&w_chat, c);
@@ -646,7 +637,7 @@ boolean HU_Responder(event_t * ev)
 				// static unsigned char buf[20]; // DEBUG
 				HU_queueChatChar(c);
 
-				// sprintf(buf, "KEY: %d => %d", ev->data1, c);
+				// format_number(buf, "KEY: %d => %d", ev->data1, c, 10);
 				//      plr->message = buf;
 			}
 			if (c == KEY_ENTER) {

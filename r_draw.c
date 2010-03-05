@@ -27,7 +27,6 @@
 //-----------------------------------------------------------------------------
 
 #include "doomdef.h"
-#include "deh_main.h"
 
 #include "i_system.h"
 #include "z_zone.h"
@@ -41,10 +40,6 @@
 // State.
 #include "doomstat.h"
 
-// ?
-#define MAXWIDTH			1120
-#define MAXHEIGHT			832
-
 // status bar height at bottom of screen
 #define SBARHEIGHT		32
 
@@ -57,14 +52,13 @@
 //  and the total size == width*height*depth/8.,
 //
 
-byte *viewimage;
 int viewwidth;
 int scaledviewwidth;
 int viewheight;
 int viewwindowx;
 int viewwindowy;
-byte *ylookup[MAXHEIGHT];
-int columnofs[MAXWIDTH];
+byte *ylookup[SCREENHEIGHT];
+int columnofs[SCREENWIDTH];
 
 // Color tables for different players,
 //  translate a limited part to another
@@ -98,15 +92,15 @@ int dccount;
 // 
 void R_DrawColumn(void)
 {
-	int count;
-	byte *dest;
+	int count, pos;
+	byte *dest, color;
 	fixed_t frac;
 	fixed_t fracstep;
 
-	count = dc_yh - dc_yl;
+	count = dc_yh - dc_yl + 1;
 
 	// Zero length, column does not exceed a pixel.
-	if (count < 0)
+	if (count <= 0)
 		return;
 
 #ifdef RANGECHECK
@@ -124,80 +118,73 @@ void R_DrawColumn(void)
 	fracstep = dc_iscale;
 	frac = dc_texturemid + (dc_yl - centery) * fracstep;
 
-	// Inner loop that does the actual texture mapping,
-	//  e.g. a DDA-lile scaling.
-	// This is as fast as it gets.
-	do {
-		// Re-map color indices from wall texture column
-		//  using a lighting/special effects LUT.
-		*dest = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
+	if (dc_colormap == colormaps) {
+		// NO COLORMAP!!
 
-		dest += SCREENWIDTH;
-		frac += fracstep;
+		if (fracstep >= FRACUNIT) {
+			while (count >= 2) {
+				*dest = dc_source[(frac >> FRACBITS) & 127];
+				frac += fracstep;
+				dest[SCREENWIDTH] = dc_source[(frac >> FRACBITS) & 127];
+				frac += fracstep;
+				dest += SCREENWIDTH * 2;
+				count -= 2;
+			}
+			if (count) {
+				*dest = dc_source[(frac >> FRACBITS) & 127];
+			}
+		} else {
+			/* magnification */
+			pos = frac >> FRACBITS;
+			while (1) {
+				frac &= (FRACUNIT-1);
+				color = dc_source[pos & 127];
 
-	} while (count--);
-}
-
-// UNUSED.
-// Loop unrolled.
-#if 0
-void R_DrawColumn(void)
-{
-	int count;
-	byte *source;
-	byte *dest;
-	byte *colormap;
-
-	unsigned frac;
-	unsigned fracstep;
-	unsigned fracstep2;
-	unsigned fracstep3;
-	unsigned fracstep4;
-
-	count = dc_yh - dc_yl + 1;
-
-	source = dc_source;
-	colormap = dc_colormap;
-	dest = ylookup[dc_yl] + columnofs[dc_x];
-
-	fracstep = dc_iscale << 9;
-	frac = (dc_texturemid + (dc_yl - centery) * dc_iscale) << 9;
-
-	fracstep2 = fracstep + fracstep;
-	fracstep3 = fracstep2 + fracstep;
-	fracstep4 = fracstep3 + fracstep;
-
-	while (count >= 8) {
-		dest[0] = colormap[source[frac >> 25]];
-		dest[SCREENWIDTH] = colormap[source[(frac + fracstep) >> 25]];
-		dest[SCREENWIDTH * 2] =
-		    colormap[source[(frac + fracstep2) >> 25]];
-		dest[SCREENWIDTH * 3] =
-		    colormap[source[(frac + fracstep3) >> 25]];
-
-		frac += fracstep4;
-
-		dest[SCREENWIDTH * 4] = colormap[source[frac >> 25]];
-		dest[SCREENWIDTH * 5] =
-		    colormap[source[(frac + fracstep) >> 25]];
-		dest[SCREENWIDTH * 6] =
-		    colormap[source[(frac + fracstep2) >> 25]];
-		dest[SCREENWIDTH * 7] =
-		    colormap[source[(frac + fracstep3) >> 25]];
-
-		frac += fracstep4;
-		dest += SCREENWIDTH * 8;
-		count -= 8;
+				while (frac < FRACUNIT) {
+					*dest = color;
+					frac += fracstep;
+					count--;
+					dest += SCREENWIDTH;
+					if (!count)
+						return;
+				}
+				pos++;
+			}
+		}
+		return;
 	}
 
-	while (count > 0) {
-		*dest = colormap[source[frac >> 25]];
-		dest += SCREENWIDTH;
-		frac += fracstep;
-		count--;
+	if (fracstep >= FRACUNIT) {
+		while (count >= 2) {
+			*dest = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
+			frac += fracstep;
+			dest[SCREENWIDTH] = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
+			frac += fracstep;
+			dest += SCREENWIDTH * 2;
+			count -= 2;
+		}
+		if (count) {
+			*dest = dc_colormap[dc_source[(frac >> FRACBITS) & 127]];
+		}
+	} else {
+		/* magnification */
+		pos = frac >> FRACBITS;
+		while (1) {
+			frac &= (FRACUNIT-1);
+			color = dc_colormap[dc_source[pos & 127]];
+
+			while (frac < FRACUNIT) {
+				*dest = color;
+				frac += fracstep;
+				count--;
+				dest += SCREENWIDTH;
+				if (!count)
+					return;
+			}
+			pos++;
+		}
 	}
 }
-#endif
 
 void R_DrawColumnLow(void)
 {
@@ -545,8 +532,12 @@ void R_DrawSpan(void)
 {
 	fixed_t xfrac;
 	fixed_t yfrac;
-	byte *dest;
-	int count;
+	fixed_t xfrac2;
+	fixed_t yfrac2;
+	fixed_t xss;
+	fixed_t yss;
+	byte *dest, a, b;
+	int count, j;
 	int spot;
 
 #ifdef RANGECHECK
@@ -558,15 +549,74 @@ void R_DrawSpan(void)
 //      dscount++; 
 #endif
 
+	count = ds_x2 - ds_x1 + 1;
+	if (count <= 0)
+		return;
+
 	xfrac = ds_xfrac;
 	yfrac = ds_yfrac;
+	xss = ds_xstep * 2;
+	yss = ds_ystep * 2;
 
 	dest = ylookup[ds_y] + columnofs[ds_x1];
 
-	// We do not check for zero spans here?
-	count = ds_x2 - ds_x1;
+	if (ds_colormap == colormaps) {
+		// NO COLORMAP!!
 
-	do {
+		if ((unsigned long)dest & 1) {
+			// Current texture index in u,v.
+			spot =
+			    ((yfrac >> (16 - 6)) & (63 * 64)) +
+			    ((xfrac >> 16) & 63);
+
+			// Lookup pixel from flat texture tile,
+			//  re-index using light/colormap.
+			*dest++ = ds_source[spot];
+
+			// Next step in u,v.
+			xfrac += ds_xstep;
+			yfrac += ds_ystep;
+			count--;
+		}
+
+		xfrac2 = xfrac + ds_xstep;
+		yfrac2 = yfrac + ds_ystep;
+		while (count >= 2) {
+			spot =
+			    ((yfrac >> (16 - 6)) & (63 * 64)) +
+			    ((xfrac >> 16) & 63);
+			a = ds_source[spot];
+
+			spot =
+			    ((yfrac2 >> (16 - 6)) & (63 * 64)) +
+			    ((xfrac2 >> 16) & 63);
+			b = ds_source[spot];
+
+			*(unsigned short *)dest = a | (b << 8);
+			dest += 2;
+
+			// Next step in u,v.
+			xfrac += xss;
+			yfrac += yss;
+			xfrac2 += xss;
+			yfrac2 += yss;
+
+			count -= 2;
+		}
+		if (count) {
+			// Current texture index in u,v.
+			spot =
+			    ((yfrac >> (16 - 6)) & (63 * 64)) +
+			    ((xfrac >> 16) & 63);
+
+			// Lookup pixel from flat texture tile,
+			//  re-index using light/colormap.
+			*dest = ds_source[spot];
+		}
+		return;
+	}
+
+	if ((unsigned long)dest & 1) {
 		// Current texture index in u,v.
 		spot = ((yfrac >> (16 - 6)) & (63 * 64)) + ((xfrac >> 16) & 63);
 
@@ -577,79 +627,39 @@ void R_DrawSpan(void)
 		// Next step in u,v.
 		xfrac += ds_xstep;
 		yfrac += ds_ystep;
-
-	} while (count--);
-}
-
-// UNUSED.
-// Loop unrolled by 4.
-#if 0
-void R_DrawSpan(void)
-{
-	unsigned position, step;
-
-	byte *source;
-	byte *colormap;
-	byte *dest;
-
-	unsigned count;
-	usingned spot;
-	unsigned value;
-	unsigned temp;
-	unsigned xtemp;
-	unsigned ytemp;
-
-	position = ((ds_xfrac << 10) & 0xffff0000) | ((ds_yfrac >> 6) & 0xffff);
-	step = ((ds_xstep << 10) & 0xffff0000) | ((ds_ystep >> 6) & 0xffff);
-
-	source = ds_source;
-	colormap = ds_colormap;
-	dest = ylookup[ds_y] + columnofs[ds_x1];
-	count = ds_x2 - ds_x1 + 1;
-
-	while (count >= 4) {
-		ytemp = position >> 4;
-		ytemp = ytemp & 4032;
-		xtemp = position >> 26;
-		spot = xtemp | ytemp;
-		position += step;
-		dest[0] = colormap[source[spot]];
-
-		ytemp = position >> 4;
-		ytemp = ytemp & 4032;
-		xtemp = position >> 26;
-		spot = xtemp | ytemp;
-		position += step;
-		dest[1] = colormap[source[spot]];
-
-		ytemp = position >> 4;
-		ytemp = ytemp & 4032;
-		xtemp = position >> 26;
-		spot = xtemp | ytemp;
-		position += step;
-		dest[2] = colormap[source[spot]];
-
-		ytemp = position >> 4;
-		ytemp = ytemp & 4032;
-		xtemp = position >> 26;
-		spot = xtemp | ytemp;
-		position += step;
-		dest[3] = colormap[source[spot]];
-
-		count -= 4;
-		dest += 4;
-	}
-	while (count > 0) {
-		ytemp = position >> 4;
-		ytemp = ytemp & 4032;
-		xtemp = position >> 26;
-		spot = xtemp | ytemp;
-		position += step;
-		*dest++ = colormap[source[spot]];
 		count--;
 	}
+
+	xfrac2 = xfrac + ds_xstep;
+	yfrac2 = yfrac + ds_ystep;
+	while (count >= 2) {
+		spot = ((yfrac >> (16 - 6)) & (63 * 64)) + ((xfrac >> 16) & 63);
+		a = ds_colormap[ds_source[spot]];
+
+		spot =
+		    ((yfrac2 >> (16 - 6)) & (63 * 64)) + ((xfrac2 >> 16) & 63);
+		b = ds_colormap[ds_source[spot]];
+
+		*(unsigned short *)dest = a | (b << 8);
+		dest += 2;
+
+		// Next step in u,v.
+		xfrac += xss;
+		yfrac += yss;
+		xfrac2 += xss;
+		yfrac2 += yss;
+
+		count -= 2;
+	}
+	if (count) {
+		// Current texture index in u,v.
+		spot = ((yfrac >> (16 - 6)) & (63 * 64)) + ((xfrac >> 16) & 63);
+
+		// Lookup pixel from flat texture tile,
+		//  re-index using light/colormap.
+		*dest = ds_colormap[ds_source[spot]];
+	}
 }
-#endif
 
 //
 // Again..
@@ -726,12 +736,12 @@ void R_InitBuffer(int width, int height) {
 }
 
 //
-// R_FillBackScreen
+// R_FillScreenBorder
 // Fills the back screen with a pattern
 //  for variable screen sizes
 // Also draws a beveled edge.
 //
-void R_FillBackScreen(void)
+void R_FillScreenBorder(void)
 {
 	byte *src;
 	byte *dest;
@@ -740,10 +750,10 @@ void R_FillBackScreen(void)
 	patch_t *patch;
 
 	// DOOM border patch.
-	char *name1 = DEH_String("FLOOR7_2");
+	char *name1 = "FLOOR7_2";
 
 	// DOOM II border patch.
-	char *name2 = DEH_String("GRNROCK");
+	char *name2 = "GRNROCK";
 
 	char *name;
 
@@ -756,7 +766,7 @@ void R_FillBackScreen(void)
 		name = name1;
 
 	src = W_CacheLumpName(name, PU_CACHE);
-	dest = screens[1];
+	dest = screens[0];
 
 	for (y = 0; y < SCREENHEIGHT - SBARHEIGHT; y++) {
 		for (x = 0; x < SCREENWIDTH / 64; x++) {
@@ -770,91 +780,37 @@ void R_FillBackScreen(void)
 		}
 	}
 
-	patch = W_CacheLumpName(DEH_String("brdr_t"), PU_CACHE);
+	patch = W_CacheLumpName("brdr_t", PU_CACHE);
 
 	for (x = 0; x < scaledviewwidth; x += 8)
-		V_DrawPatch(viewwindowx + x, viewwindowy - 8, 1, patch);
-	patch = W_CacheLumpName(DEH_String("brdr_b"), PU_CACHE);
+		V_DrawPatch(viewwindowx + x, viewwindowy - 8, 0, patch);
+	patch = W_CacheLumpName("brdr_b", PU_CACHE);
 
 	for (x = 0; x < scaledviewwidth; x += 8)
-		V_DrawPatch(viewwindowx + x, viewwindowy + viewheight, 1,
+		V_DrawPatch(viewwindowx + x, viewwindowy + viewheight, 0,
 			    patch);
-	patch = W_CacheLumpName(DEH_String("brdr_l"), PU_CACHE);
+	patch = W_CacheLumpName("brdr_l", PU_CACHE);
 
 	for (y = 0; y < viewheight; y += 8)
-		V_DrawPatch(viewwindowx - 8, viewwindowy + y, 1, patch);
-	patch = W_CacheLumpName(DEH_String("brdr_r"), PU_CACHE);
+		V_DrawPatch(viewwindowx - 8, viewwindowy + y, 0, patch);
+	patch = W_CacheLumpName("brdr_r", PU_CACHE);
 
 	for (y = 0; y < viewheight; y += 8)
-		V_DrawPatch(viewwindowx + scaledviewwidth, viewwindowy + y, 1,
+		V_DrawPatch(viewwindowx + scaledviewwidth, viewwindowy + y, 0,
 			    patch);
 
 	// Draw beveled edge. 
 	V_DrawPatch(viewwindowx - 8,
-		    viewwindowy - 8,
-		    1, W_CacheLumpName(DEH_String("brdr_tl"), PU_CACHE));
+		    viewwindowy - 8, 0, W_CacheLumpName("brdr_tl", PU_CACHE));
 
 	V_DrawPatch(viewwindowx + scaledviewwidth,
-		    viewwindowy - 8,
-		    1, W_CacheLumpName(DEH_String("brdr_tr"), PU_CACHE));
+		    viewwindowy - 8, 0, W_CacheLumpName("brdr_tr", PU_CACHE));
 
 	V_DrawPatch(viewwindowx - 8,
 		    viewwindowy + viewheight,
-		    1, W_CacheLumpName(DEH_String("brdr_bl"), PU_CACHE));
+		    0, W_CacheLumpName("brdr_bl", PU_CACHE));
 
 	V_DrawPatch(viewwindowx + scaledviewwidth,
 		    viewwindowy + viewheight,
-		    1, W_CacheLumpName(DEH_String("brdr_br"), PU_CACHE));
-}
-
-//
-// Copy a screen buffer.
-//
-void R_VideoErase(unsigned ofs, int count) {
-	// LFB copy.
-	// This might not be a good idea if memcpy
-	//  is not optiomal, e.g. byte by byte on
-	//  a 32bit CPU, as GNU GCC/Linux libc did
-	//  at one point.
-	memcpy(screens[0] + ofs, screens[1] + ofs, count);
-}
-
-//
-// R_DrawViewBorder
-// Draws the border around the view
-//  for different size windows?
-//
-void V_MarkRect(int x, int y, int width, int height);
-
-void R_DrawViewBorder(void)
-{
-	int top;
-	int side;
-	int ofs;
-	int i;
-
-	if (scaledviewwidth == SCREENWIDTH)
-		return;
-
-	top = ((SCREENHEIGHT - SBARHEIGHT) - viewheight) / 2;
-	side = (SCREENWIDTH - scaledviewwidth) / 2;
-
-	// copy top and one line of left side 
-	R_VideoErase(0, top * SCREENWIDTH + side);
-
-	// copy one line of right side and bottom 
-	ofs = (viewheight + top) * SCREENWIDTH - side;
-	R_VideoErase(ofs, top * SCREENWIDTH + side);
-
-	// copy sides using wraparound 
-	ofs = top * SCREENWIDTH + SCREENWIDTH - side;
-	side <<= 1;
-
-	for (i = 1; i < viewheight; i++) {
-		R_VideoErase(ofs, side);
-		ofs += SCREENWIDTH;
-	}
-
-	// ? 
-	V_MarkRect(0, 0, SCREENWIDTH, SCREENHEIGHT - SBARHEIGHT);
+		    0, W_CacheLumpName("brdr_br", PU_CACHE));
 }

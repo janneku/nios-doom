@@ -24,32 +24,47 @@
 //
 //-----------------------------------------------------------------------------
 
-#include "stdlib.h"
-
 #include "doomtype.h"
 #include "i_system.h"
+#include "doomdef.h"
 
 #include "m_fixed.h"
 
-// Fixme. __USE_C_FIXED__ or something.
-
-fixed_t FixedMul(fixed_t a, fixed_t b) {
-	return ((int64_t) a * (int64_t) b) >> FRACBITS;
+static uint32_t quickdiv(uint32_t a, uint32_t div)
+{
+	if (div >= 0x10000) {
+		div >>= 8;
+		return ((a / div) << 8)
+			+ ((a % div) << 8) / div;
+	} else {
+		return ((a / div) << 16)
+			+ ((a % div) << 16) / div;
+	}
 }
 
-//
-// FixedDiv, C version.
-//
+#define QUICK_MATH
 
 fixed_t FixedDiv(fixed_t a, fixed_t b)
 {
+	int neg = 0;
 	if ((abs(a) >> 14) >= abs(b)) {
 		return (a ^ b) < 0 ? INT_MIN : INT_MAX;
-	} else {
-		int64_t result;
-
-		result = ((int64_t) a << 16) / b;
-
-		return (fixed_t) result;
 	}
+
+#ifdef QUICK_MATH
+	if (a < 0) {
+		neg = !neg;
+		a = -a;
+	}
+	if (b < 0) {
+		neg = !neg;
+		b = -b;
+	}
+	if (!neg)
+		return quickdiv(a, b);
+	else
+		return -(fixed_t)quickdiv(a, b);
+#else
+	return (fixed_t) (((int64_t) a << 16) / b);
+#endif
 }

@@ -26,7 +26,6 @@
 //
 //-----------------------------------------------------------------------------
 
-#include <stdio.h>
 
 #include "i_system.h"
 #include "i_video.h"
@@ -34,7 +33,6 @@
 #include "m_random.h"
 #include "w_wad.h"
 
-#include "deh_main.h"
 #include "deh_misc.h"
 #include "doomdef.h"
 
@@ -65,6 +63,9 @@
 //
 // STATUS BAR DATA
 //
+
+#define FG		0
+#define BG		1
 
 // Palette indices.
 // For damage/bonus red-/gold-shifts
@@ -270,9 +271,6 @@ static player_t *plyr;
 // ST_Start() has just been called
 static boolean st_firsttime;
 
-// used to execute ST_Init() only once
-static int veryfirsttime = 1;
-
 // lump number for PLAYPAL
 static int lu_palette;
 
@@ -445,7 +443,6 @@ boolean ST_Responder(event_t * ev)
 			break;
 
 		case AM_MSGEXITED:
-			//      fprintf(stderr, "AM exited\n");
 			st_gamestate = FirstPersonState;
 			break;
 		}
@@ -461,10 +458,9 @@ boolean ST_Responder(event_t * ev)
 						plyr->mo->health = 100;
 
 					plyr->health = deh_god_mode_health;
-					plyr->message = DEH_String(STSTR_DQDON);
+					plyr->message = STSTR_DQDON;
 				} else
-					plyr->message =
-					    DEH_String(STSTR_DQDOFF);
+					plyr->message = STSTR_DQDOFF;
 			}
 			// 'fa' cheat for killer fucking arsenal
 			else if (cht_CheckCheat(&cheat_ammonokey, ev->data2)) {
@@ -477,7 +473,7 @@ boolean ST_Responder(event_t * ev)
 				for (i = 0; i < NUMAMMO; i++)
 					plyr->ammo[i] = plyr->maxammo[i];
 
-				plyr->message = DEH_String(STSTR_FAADDED);
+				plyr->message = STSTR_FAADDED;
 			}
 			// 'kfa' cheat for key full ammo
 			else if (cht_CheckCheat(&cheat_ammo, ev->data2)) {
@@ -493,15 +489,15 @@ boolean ST_Responder(event_t * ev)
 				for (i = 0; i < NUMCARDS; i++)
 					plyr->cards[i] = true;
 
-				plyr->message = DEH_String(STSTR_KFAADDED);
+				plyr->message = STSTR_KFAADDED;
 			}
 			// 'mus' cheat for changing music
 			else if (cht_CheckCheat(&cheat_mus, ev->data2)) {
-
+#if 0
 				char buf[3];
 				int musnum;
 
-				plyr->message = DEH_String(STSTR_MUS);
+				plyr->message = STSTR_MUS;
 				cht_GetParam(&cheat_mus, buf);
 
 				if (gamemode == commercial) {
@@ -511,8 +507,7 @@ boolean ST_Responder(event_t * ev)
 
 					if (((buf[0] - '0') * 10 + buf[1] -
 					     '0') > 35)
-						plyr->message =
-						    DEH_String(STSTR_NOMUS);
+						plyr->message = STSTR_NOMUS;
 					else
 						S_ChangeMusic(musnum, 1);
 				} else {
@@ -522,11 +517,11 @@ boolean ST_Responder(event_t * ev)
 
 					if (((buf[0] - '1') * 9 + buf[1] -
 					     '1') > 31)
-						plyr->message =
-						    DEH_String(STSTR_NOMUS);
+						plyr->message = STSTR_NOMUS;
 					else
 						S_ChangeMusic(musnum, 1);
 				}
+#endif
 			} else if ((gamemission == doom
 				    && cht_CheckCheat(&cheat_noclip, ev->data2))
 				   || (gamemission != doom
@@ -540,9 +535,9 @@ boolean ST_Responder(event_t * ev)
 				plyr->cheats ^= CF_NOCLIP;
 
 				if (plyr->cheats & CF_NOCLIP)
-					plyr->message = DEH_String(STSTR_NCON);
+					plyr->message = STSTR_NCON;
 				else
-					plyr->message = DEH_String(STSTR_NCOFF);
+					plyr->message = STSTR_NCOFF;
 			}
 			// 'behold?' power-up cheats
 			for (i = 0; i < 6; i++) {
@@ -555,29 +550,28 @@ boolean ST_Responder(event_t * ev)
 					else
 						plyr->powers[i] = 0;
 
-					plyr->message =
-					    DEH_String(STSTR_BEHOLDX);
+					plyr->message = STSTR_BEHOLDX;
 				}
 			}
 
 			// 'behold' power-up menu
 			if (cht_CheckCheat(&cheat_powerup[6], ev->data2)) {
-				plyr->message = DEH_String(STSTR_BEHOLD);
+				plyr->message = STSTR_BEHOLD;
 			}
 			// 'choppers' invulnerability & chainsaw
 			else if (cht_CheckCheat(&cheat_choppers, ev->data2)) {
 				plyr->weaponowned[wp_chainsaw] = true;
 				plyr->powers[pw_invulnerability] = true;
-				plyr->message = DEH_String(STSTR_CHOPPERS);
+				plyr->message = STSTR_CHOPPERS;
 			}
 			// 'mypos' for player position
 			else if (cht_CheckCheat(&cheat_mypos, ev->data2)) {
-				static char buf[ST_MSGWIDTH];
-				sprintf(buf, "ang=0x%x;x,y=(0x%x,0x%x)",
-					players[consoleplayer].mo->angle,
-					players[consoleplayer].mo->x,
-					players[consoleplayer].mo->y);
-				plyr->message = buf;
+				/*static char   buf[ST_MSGWIDTH];
+				   sprintf(buf, "ang=0x%x;x,y=(0x%x,0x%x)",
+				   players[consoleplayer].mo->angle,
+				   players[consoleplayer].mo->x,
+				   players[consoleplayer].mo->y);
+				   plyr->message = buf; */
 			}
 		}
 		// 'clev' change-level cheat
@@ -626,7 +620,7 @@ boolean ST_Responder(event_t * ev)
 				return false;
 
 			// So be it.
-			plyr->message = DEH_String(STSTR_CLEV);
+			plyr->message = STSTR_CLEV;
 			G_DeferedInitNew(gameskill, epsd, map);
 		}
 	}
@@ -1008,34 +1002,34 @@ static void ST_loadUnloadGraphics(load_callback_t callback)
 	int j;
 	int facenum;
 
-	char namebuf[9];
+	char namebuf[15], otherbuf[15];
 
 	// Load the numbers, tall and short
 	for (i = 0; i < 10; i++) {
-		sprintf(namebuf, DEH_String("STTNUM%d"), i);
+		format_number(namebuf, "STTNUM%d", i, 10);
 		callback(namebuf, &tallnum[i]);
 
-		sprintf(namebuf, DEH_String("STYSNUM%d"), i);
+		format_number(namebuf, "STYSNUM%d", i, 10);
 		callback(namebuf, &shortnum[i]);
 	}
 
 	// Load percent key.
 	//Note: why not load STMINUS here, too?
 
-	callback(DEH_String("STTPRCNT"), &tallpercent);
+	callback("STTPRCNT", &tallpercent);
 
 	// key cards
 	for (i = 0; i < NUMCARDS; i++) {
-		sprintf(namebuf, DEH_String("STKEYS%d"), i);
+		format_number(namebuf, "STKEYS%d", i, 10);
 		callback(namebuf, &keys[i]);
 	}
 
 	// arms background
-	callback(DEH_String("STARMS"), &armsbg);
+	callback("STARMS", &armsbg);
 
 	// arms ownership widgets
 	for (i = 0; i < 6; i++) {
-		sprintf(namebuf, DEH_String("STGNUM%d"), i + 2);
+		format_number(namebuf, "STGNUM%d", i + 2, 10);
 
 		// gray #
 		callback(namebuf, &arms[i][0]);
@@ -1045,40 +1039,41 @@ static void ST_loadUnloadGraphics(load_callback_t callback)
 	}
 
 	// face backgrounds for different color players
-	sprintf(namebuf, DEH_String("STFB%d"), consoleplayer);
+	format_number(namebuf, "STFB%d", consoleplayer, 10);
 	callback(namebuf, &faceback);
 
 	// status bar background bits
-	callback(DEH_String("STBAR"), &sbar);
+	callback("STBAR", &sbar);
 
 	// face states
 	facenum = 0;
 	for (i = 0; i < ST_NUMPAINFACES; i++) {
 		for (j = 0; j < ST_NUMSTRAIGHTFACES; j++) {
-			sprintf(namebuf, DEH_String("STFST%d%d"), i, j);
+			format_number(otherbuf, "STFST%d%d", i, 10);
+			format_number(namebuf, otherbuf, j, 10);
 			callback(namebuf, &faces[facenum]);
 			++facenum;
 		}
-		sprintf(namebuf, DEH_String("STFTR%d0"), i);	// turn right
+		format_number(namebuf, "STFTR%d0", i, 10);	// turn right
 		callback(namebuf, &faces[facenum]);
 		++facenum;
-		sprintf(namebuf, DEH_String("STFTL%d0"), i);	// turn left
+		format_number(namebuf, "STFTL%d0", i, 10);	// turn left
 		callback(namebuf, &faces[facenum]);
 		++facenum;
-		sprintf(namebuf, DEH_String("STFOUCH%d"), i);	// ouch!
+		format_number(namebuf, "STFOUCH%d", i, 10);	// ouch!
 		callback(namebuf, &faces[facenum]);
 		++facenum;
-		sprintf(namebuf, DEH_String("STFEVL%d"), i);	// evil grin ;)
+		format_number(namebuf, "STFEVL%d", i, 10);	// evil grin ;)
 		callback(namebuf, &faces[facenum]);
 		++facenum;
-		sprintf(namebuf, DEH_String("STFKILL%d"), i);	// pissed off
+		format_number(namebuf, "STFKILL%d", i, 10);	// pissed off
 		callback(namebuf, &faces[facenum]);
 		++facenum;
 	}
 
-	callback(DEH_String("STFGOD0"), &faces[facenum]);
+	callback("STFGOD0", &faces[facenum]);
 	++facenum;
-	callback(DEH_String("STFDEAD0"), &faces[facenum]);
+	callback("STFDEAD0", &faces[facenum]);
 	++facenum;
 }
 
@@ -1094,7 +1089,7 @@ void ST_loadGraphics(void)
 
 void ST_loadData(void)
 {
-	lu_palette = W_GetNumForName(DEH_String("PLAYPAL"));
+	lu_palette = W_GetNumForName("PLAYPAL");
 	ST_loadGraphics();
 }
 
@@ -1287,7 +1282,6 @@ void ST_Stop(void)
 
 void ST_Init(void)
 {
-	veryfirsttime = 0;
 	ST_loadData();
-	screens[4] = (byte *) Z_Malloc(ST_WIDTH * ST_HEIGHT, PU_STATIC, 0);
+	screens[BG] = Z_Malloc(ST_WIDTH * ST_HEIGHT, PU_STATIC, 0);
 }

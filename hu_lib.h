@@ -29,11 +29,6 @@
 // We are referring to patches.
 #include "r_defs.h"
 
-// background and foreground screen numbers
-// different from other modules.
-#define BG			1
-#define FG			0
-
 // font stuff
 #define HU_CHARERASE	KEY_BACKSPACE
 
@@ -135,7 +130,7 @@ void HUlib_addMessageToSText(hu_stext_t * s, char *prefix, char *msg);
 void HUlib_drawSText(hu_stext_t * s);
 
 // erases all stext lines
-void HUlib_eraseSText(hu_stext_t * s);
+boolean HUlib_eraseSText(hu_stext_t * s);
 
 // Input Text Line widget routines
 void HUlib_initIText
@@ -160,6 +155,6 @@ boolean HUlib_keyInIText(hu_itext_t * it, unsigned char ch);
 void HUlib_drawIText(hu_itext_t * it);
 
 // erases all itext lines
-void HUlib_eraseIText(hu_itext_t * it);
+boolean HUlib_eraseIText(hu_itext_t * it);
 
 #endif
