@@ -23,7 +23,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
 #ifndef __I_JOYSTICK__
 #define __I_JOYSTICK__
 
@@ -38,4 +37,3 @@ void I_ShutdownJoystick(void);
 void I_UpdateJoystick(void);
 
 #endif /* #ifndef __I_JOYSTICK__ */
-

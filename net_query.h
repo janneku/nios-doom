@@ -32,4 +32,3 @@ extern void NET_LANQuery(void);
 extern net_addr_t *NET_FindLANServer(void);
 
 #endif /* #ifndef NET_QUERY_H */
-

@@ -23,7 +23,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
 #ifndef __D_IWAD__
 #define __D_IWAD__
 
@@ -36,4 +35,3 @@ void D_SetGameDescription(void);
 void D_FindInstalledIWADs(void);
 
 #endif
-

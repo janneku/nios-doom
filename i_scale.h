@@ -24,13 +24,12 @@
 //
 //-----------------------------------------------------------------------------
 
-
 #ifndef __I_SCALE__
 #define __I_SCALE__
 
 #include "doomtype.h"
 
-void I_InitScale(byte *_src_buffer, byte *_dest_buffer, int _dest_pitch);
+void I_InitScale(byte * _src_buffer, byte * _dest_buffer, int _dest_pitch);
 
 // Scaled modes (direct multiples of 320x200)
 
@@ -57,4 +56,3 @@ extern screen_mode_t mode_squash_4x;
 extern screen_mode_t mode_squash_5x;
 
 #endif /* #ifndef __I_SCALE__ */
-

@@ -20,10 +20,9 @@
 // 02111-1307, USA.
 //
 // DESCRIPTION:
-//	Endianess handling, swapping 16bit and 32bit.
+//      Endianess handling, swapping 16bit and 32bit.
 //
 //-----------------------------------------------------------------------------
-
 
 #ifndef __I_SWAP__
 #define __I_SWAP__
@@ -50,4 +49,3 @@
 #endif
 
 #endif
-

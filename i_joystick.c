@@ -23,7 +23,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
 #include "SDL.h"
 #include "SDL_joystick.h"
 
@@ -68,121 +67,108 @@ int joystick_y_invert = 0;
 
 void I_InitJoystick(void)
 {
-    int num_axes;
+	int num_axes;
 
-    if (!usejoystick)
-    {
-        return;
-    }
+	if (!usejoystick) {
+		return;
+	}
 
-    if (SDL_Init(SDL_INIT_JOYSTICK) < 0)
-    {
-        return;
-    }
+	if (SDL_Init(SDL_INIT_JOYSTICK) < 0) {
+		return;
+	}
 
-    if (joystick_index < 0 || joystick_index >= SDL_NumJoysticks())
-    {
-        printf("I_InitJoystick: Invalid joystick ID: %i\n", joystick_index);
-        SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-        return;
-    }
+	if (joystick_index < 0 || joystick_index >= SDL_NumJoysticks()) {
+		printf("I_InitJoystick: Invalid joystick ID: %i\n",
+		       joystick_index);
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+		return;
+	}
+	// Open the joystick
 
-    // Open the joystick
+	joystick = SDL_JoystickOpen(joystick_index);
 
-    joystick = SDL_JoystickOpen(joystick_index);
+	if (joystick == NULL) {
+		printf("I_InitJoystick: Failed to open joystick #%i\n",
+		       joystick_index);
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+		return;
+	}
 
-    if (joystick == NULL)
-    {
-        printf("I_InitJoystick: Failed to open joystick #%i\n",
-               joystick_index);
-        SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-        return;
-    }
+	num_axes = SDL_JoystickNumAxes(joystick);
 
-    num_axes = SDL_JoystickNumAxes(joystick);
+	if (joystick_x_axis < 0 || joystick_x_axis >= num_axes
+	    || joystick_y_axis < 0 || joystick_y_axis >= num_axes) {
+		printf("I_InitJoystick: Invalid joystick axis for joystick #%i "
+		       "(run joystick setup again)\n", joystick_index);
 
-    if (joystick_x_axis < 0 || joystick_x_axis >= num_axes
-     || joystick_y_axis < 0 || joystick_y_axis >= num_axes)
-    {
-        printf("I_InitJoystick: Invalid joystick axis for joystick #%i "
-               "(run joystick setup again)\n",
-               joystick_index);
+		SDL_JoystickClose(joystick);
+		joystick = NULL;
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+	}
 
-        SDL_JoystickClose(joystick);
-        joystick = NULL;
-        SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-    }
+	SDL_JoystickEventState(SDL_ENABLE);
 
-    SDL_JoystickEventState(SDL_ENABLE);
+	// Initialised okay!
 
-    // Initialised okay!
-
-    printf("I_InitJoystick: %s\n", SDL_JoystickName(joystick_index));
+	printf("I_InitJoystick: %s\n", SDL_JoystickName(joystick_index));
 }
 
 void I_ShutdownJoystick(void)
 {
-    if (joystick != NULL) 
-    {
-        SDL_JoystickClose(joystick);
-        joystick = NULL;
-        SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
-    }
+	if (joystick != NULL) {
+		SDL_JoystickClose(joystick);
+		joystick = NULL;
+		SDL_QuitSubSystem(SDL_INIT_JOYSTICK);
+	}
 }
 
 // Get a bitmask of all currently-pressed buttons
 
 static int GetButtonState(void)
 {
-    int i;
-    int result;
+	int i;
+	int result;
 
-    result = 0;
+	result = 0;
 
-    for (i=0; i<SDL_JoystickNumButtons(joystick); ++i) 
-    {
-        if (SDL_JoystickGetButton(joystick, i))
-        {
-            result |= 1 << i;
-        }
-    }
+	for (i = 0; i < SDL_JoystickNumButtons(joystick); ++i) {
+		if (SDL_JoystickGetButton(joystick, i)) {
+			result |= 1 << i;
+		}
+	}
 
-    return result;
+	return result;
 }
 
 // Read the state of an axis, inverting if necessary.
 
 static int GetAxisState(int axis, int invert)
 {
-    int result;
+	int result;
 
-    result = SDL_JoystickGetAxis(joystick, axis);
+	result = SDL_JoystickGetAxis(joystick, axis);
 
-    if (invert)
-    {
-        result = -result;
-    }
+	if (invert) {
+		result = -result;
+	}
 
-    if (result < DEAD_ZONE && result > -DEAD_ZONE)
-    {
-        result = 0;
-    }
+	if (result < DEAD_ZONE && result > -DEAD_ZONE) {
+		result = 0;
+	}
 
-    return result;
+	return result;
 }
 
 void I_UpdateJoystick(void)
 {
-    if (joystick != NULL)
-    {
-        event_t ev;
+	if (joystick != NULL) {
+		event_t ev;
 
-        ev.type = ev_joystick;
-        ev.data1 = GetButtonState();
-        ev.data2 = GetAxisState(joystick_x_axis, joystick_x_invert);
-        ev.data3 = GetAxisState(joystick_y_axis, joystick_y_invert);
+		ev.type = ev_joystick;
+		ev.data1 = GetButtonState();
+		ev.data2 = GetAxisState(joystick_x_axis, joystick_x_invert);
+		ev.data3 = GetAxisState(joystick_y_axis, joystick_y_invert);
 
-        D_PostEvent(&ev);
-    }
+		D_PostEvent(&ev);
+	}
 }
-

@@ -20,10 +20,9 @@
 // 02111-1307, USA.
 //
 // DESCRIPTION:
-//	Main program, simply calls D_DoomMain high level loop.
+//      Main program, simply calls D_DoomMain high level loop.
 //
 //-----------------------------------------------------------------------------
-
 
 #include "config.h"
 
@@ -53,44 +52,41 @@
 
 int main(int argc, char **argv)
 {
-    // save arguments
+	// save arguments
 
-    myargc = argc;
-    myargv = argv;
+	myargc = argc;
+	myargv = argv;
 
 #ifdef _WIN32
 
-    // Set the process affinity mask so that all threads
-    // run on the same processor.  This is a workaround for a bug in
-    // SDL_mixer that causes occasional crashes.
+	// Set the process affinity mask so that all threads
+	// run on the same processor.  This is a workaround for a bug in
+	// SDL_mixer that causes occasional crashes.
 
-    if (!SetProcessAffinityMask(GetCurrentProcess(), 1))
-    {
-        fprintf(stderr, "Failed to set process affinity mask (%d)\n",
-                (int) GetLastError());
-    }
-
+	if (!SetProcessAffinityMask(GetCurrentProcess(), 1)) {
+		fprintf(stderr, "Failed to set process affinity mask (%d)\n",
+			(int)GetLastError());
+	}
 #endif
 
 #ifdef HAVE_SCHED_SETAFFINITY
 
-    // Linux version:
+	// Linux version:
 
-    {
-        cpu_set_t set;
+	{
+		cpu_set_t set;
 
-        CPU_ZERO(&set);
-        CPU_SET(0, &set);
+		CPU_ZERO(&set);
+		CPU_SET(0, &set);
 
-        sched_setaffinity(getpid(), sizeof(set), &set);
-    }
+		sched_setaffinity(getpid(), sizeof(set), &set);
+	}
 
 #endif
 
-    // start doom
+	// start doom
 
-    D_DoomMain ();
+	D_DoomMain();
 
-    return 0;
+	return 0;
 }
-

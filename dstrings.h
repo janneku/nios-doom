@@ -21,14 +21,12 @@
 //
 //
 // DESCRIPTION:
-//	DOOM strings, by language.
+//      DOOM strings, by language.
 //
 //-----------------------------------------------------------------------------
 
-
 #ifndef __DSTRINGS__
 #define __DSTRINGS__
-
 
 // All important printed strings.
 
@@ -36,7 +34,6 @@
 
 // Misc. other strings.
 #define SAVEGAMENAME	"doomsav"
-
 
 //
 // File locations,
@@ -46,13 +43,11 @@
 #define DEVMAPS "devmaps"
 #define DEVDATA "devdata"
 
-
 // QuitDOOM messages
 // 8 per each game type
 #define NUM_QUITMESSAGES   8
 
 extern char *doom1_endmsg[];
 extern char *doom2_endmsg[];
-
 
 #endif

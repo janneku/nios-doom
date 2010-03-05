@@ -20,10 +20,9 @@
 // 02111-1307, USA.
 //
 // DESCRIPTION:
-//	Networking stuff.
+//      Networking stuff.
 //
 //-----------------------------------------------------------------------------
-
 
 #ifndef __D_NET__
 #define __D_NET__
@@ -38,14 +37,14 @@
 extern int extratics;
 
 // Create any new ticcmds and broadcast to other players.
-void NetUpdate (void);
+void NetUpdate(void);
 
 // Broadcasts special packets to other players
 //  to notify of game exit
-void D_QuitNetGame (void);
+void D_QuitNetGame(void);
 
 //? how many ticks to run?
-void TryRunTics (void);
+void TryRunTics(void);
 
 // Called at start of game loop to initialise timers
 void D_StartGameLoop(void);
@@ -54,4 +53,3 @@ extern boolean drone;
 extern boolean net_cl_new_sync;
 
 #endif
-

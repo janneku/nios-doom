@@ -23,8 +23,6 @@
 //
 //-----------------------------------------------------------------------------
 
-
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,7 +53,6 @@
 #include "i_system.h"
 #include "txt_main.h"
 
-
 #include "w_wad.h"
 #include "z_zone.h"
 
@@ -68,38 +65,36 @@ void I_Tactile(int on, int off, int total)
 {
 }
 
-int  I_GetHeapSize (void)
+int I_GetHeapSize(void)
 {
-    int p;
+	int p;
 
-    //!
-    // @arg <mb>
-    //
-    // Specify the heap size, in MiB (default 16).
-    //
+	//!
+	// @arg <mb>
+	//
+	// Specify the heap size, in MiB (default 16).
+	//
 
-    p = M_CheckParm("-mb");
-    
-    if (p > 0)
-    {
-        mb_used = atoi(myargv[p+1]);
-    }
-    
-    return mb_used*1024*1024;
+	p = M_CheckParm("-mb");
+
+	if (p > 0) {
+		mb_used = atoi(myargv[p + 1]);
+	}
+
+	return mb_used * 1024 * 1024;
 }
 
-byte *I_ZoneBase (int *size)
+byte *I_ZoneBase(int *size)
 {
-    byte *zonemem;
+	byte *zonemem;
 
-    *size = I_GetHeapSize();
+	*size = I_GetHeapSize();
 
-    zonemem = malloc(*size);
-    
-    printf("zone memory: %p, %x allocated for zone\n", 
-           zonemem, *size);
+	zonemem = malloc(*size);
 
-    return zonemem;
+	printf("zone memory: %p, %x allocated for zone\n", zonemem, *size);
+
+	return zonemem;
 }
 
 // 
@@ -111,21 +106,21 @@ byte *I_ZoneBase (int *size)
 boolean I_ConsoleStdout(void)
 {
 #ifdef _WIN32
-    // SDL "helpfully" always redirects stdout to a file.
-    return 0;
+	// SDL "helpfully" always redirects stdout to a file.
+	return 0;
 #else
-    return isatty(fileno(stdout));
+	return isatty(fileno(stdout));
 #endif
 }
 
 //
 // I_Init
 //
-void I_Init (void)
+void I_Init(void)
 {
-    I_CheckIsScreensaver();
-    I_InitTimer();
-    I_InitJoystick();
+	I_CheckIsScreensaver();
+	I_InitTimer();
+	I_InitJoystick();
 }
 
 // 
@@ -134,72 +129,68 @@ void I_Init (void)
 
 void I_Endoom(void)
 {
-    unsigned char *endoom_data;
-    unsigned char *screendata;
+	unsigned char *endoom_data;
+	unsigned char *screendata;
 
-    endoom_data = W_CacheLumpName(DEH_String("ENDOOM"), PU_STATIC);
+	endoom_data = W_CacheLumpName(DEH_String("ENDOOM"), PU_STATIC);
 
-    // Set up text mode screen
+	// Set up text mode screen
 
-    TXT_Init();
+	TXT_Init();
 
-    // Make sure the new window has the right title and icon
- 
-    I_SetWindowCaption();
-    I_SetWindowIcon();
-    
-    // Write the data to the screen memory
-  
-    screendata = TXT_GetScreenData();
-    memcpy(screendata, endoom_data, 4000);
+	// Make sure the new window has the right title and icon
 
-    // Wait for a keypress
+	I_SetWindowCaption();
+	I_SetWindowIcon();
 
-    while (true)
-    {
-        TXT_UpdateScreen();
+	// Write the data to the screen memory
 
-        if (TXT_GetChar() >= 0)
-        {
-            break;
-        }
-        
-        TXT_Sleep(0);
-    }
-    
-    // Shut down text mode screen
+	screendata = TXT_GetScreenData();
+	memcpy(screendata, endoom_data, 4000);
 
-    TXT_Shutdown();
+	// Wait for a keypress
+
+	while (true) {
+		TXT_UpdateScreen();
+
+		if (TXT_GetChar() >= 0) {
+			break;
+		}
+
+		TXT_Sleep(0);
+	}
+
+	// Shut down text mode screen
+
+	TXT_Shutdown();
 }
 
 //
 // I_Quit
 //
 
-void I_Quit (void)
+void I_Quit(void)
 {
-    D_QuitNetGame ();
-    G_CheckDemoStatus();
-    S_Shutdown();
+	D_QuitNetGame();
+	G_CheckDemoStatus();
+	S_Shutdown();
 
-    if (!screensaver_mode)
-    {
-        M_SaveDefaults ();
-    }
+	if (!screensaver_mode) {
+		M_SaveDefaults();
+	}
 
-    I_ShutdownGraphics();
+	I_ShutdownGraphics();
 
-    if (show_endoom && !testcontrols && !screensaver_mode)
-    {
-        I_Endoom();
-    }
+	if (show_endoom && !testcontrols && !screensaver_mode) {
+		I_Endoom();
+	}
 
-    exit(0);
+	exit(0);
 }
 
 void I_WaitVBL(int count)
 {
-    I_Sleep((count * 1000) / 70);
+	I_Sleep((count * 1000) / 70);
 }
 
 //
@@ -209,55 +200,51 @@ extern boolean demorecording;
 
 static boolean already_quitting = false;
 
-void I_Error (char *error, ...)
+void I_Error(char *error, ...)
 {
-    va_list	argptr;
+	va_list argptr;
 
-    if (already_quitting)
-    {
-        fprintf(stderr, "Warning: recursive call to I_Error detected.\n");
-        exit(-1);
-    }
-    else
-    {
-        already_quitting = true;
-    }
-    
-    // Message first.
-    va_start(argptr, error);
-    fprintf(stderr, "\nError: ");
-    vfprintf(stderr, error, argptr);
-    fprintf(stderr, "\n");
-    va_end(argptr);
-    fflush(stderr);
+	if (already_quitting) {
+		fprintf(stderr,
+			"Warning: recursive call to I_Error detected.\n");
+		exit(-1);
+	} else {
+		already_quitting = true;
+	}
 
-    // Shutdown. Here might be other errors.
+	// Message first.
+	va_start(argptr, error);
+	fprintf(stderr, "\nError: ");
+	vfprintf(stderr, error, argptr);
+	fprintf(stderr, "\n");
+	va_end(argptr);
+	fflush(stderr);
 
-    if (demorecording)
-    {
-	G_CheckDemoStatus();
-    }
+	// Shutdown. Here might be other errors.
 
-    D_QuitNetGame ();
-    I_ShutdownGraphics();
-    S_Shutdown();
-    
+	if (demorecording) {
+		G_CheckDemoStatus();
+	}
+
+	D_QuitNetGame();
+	I_ShutdownGraphics();
+	S_Shutdown();
+
 #ifdef _WIN32
-    // On Windows, pop up a dialog box with the error message.
-    {
-        char msgbuf[512];
+	// On Windows, pop up a dialog box with the error message.
+	{
+		char msgbuf[512];
 
-        va_start(argptr, error);
-        memset(msgbuf, 0, sizeof(msgbuf));
-        vsnprintf(msgbuf, sizeof(msgbuf) - 1, error, argptr);
-        va_end(argptr);
+		va_start(argptr, error);
+		memset(msgbuf, 0, sizeof(msgbuf));
+		vsnprintf(msgbuf, sizeof(msgbuf) - 1, error, argptr);
+		va_end(argptr);
 
-        MessageBox(NULL, msgbuf, "Error", MB_OK);
-    }
+		MessageBox(NULL, msgbuf, "Error", MB_OK);
+	}
 #endif
 
-    // abort();
+	// abort();
 
-    exit(-1);
+	exit(-1);
 }
-

@@ -35,11 +35,11 @@
 
 void NET_CL_Run(void)
 {
-    // No client present :-)
-    //
-    // This is here because the server code sometimes runs this 
-    // to let the client do some processing if it needs to.
-    // In a standalone dedicated server, we don't have a client.
+	// No client present :-)
+	//
+	// This is here because the server code sometimes runs this 
+	// to let the client do some processing if it needs to.
+	// In a standalone dedicated server, we don't have a client.
 }
 
 //
@@ -48,29 +48,27 @@ void NET_CL_Run(void)
 // We have our own I_Error function for the dedicated server.  
 // The normal one does extra things like shutdown graphics, etc.
 
-void I_Error (char *error, ...)
+void I_Error(char *error, ...)
 {
-    va_list	argptr;
+	va_list argptr;
 
-    // Message first.
-    va_start(argptr,error);
-    fprintf(stderr, "Error: ");
-    vfprintf(stderr,error,argptr);
-    fprintf(stderr, "\n");
-    va_end(argptr);
+	// Message first.
+	va_start(argptr, error);
+	fprintf(stderr, "Error: ");
+	vfprintf(stderr, error, argptr);
+	fprintf(stderr, "\n");
+	va_end(argptr);
 
-    fflush(stderr);
+	fflush(stderr);
 
-    exit(-1);
+	exit(-1);
 }
-
 
 void D_DoomMain(void)
 {
-    printf(PACKAGE_NAME " standalone dedicated server\n");
+	printf(PACKAGE_NAME " standalone dedicated server\n");
 
-    Z_Init();
+	Z_Init();
 
-    NET_DedicatedServer();
+	NET_DedicatedServer();
 }
-

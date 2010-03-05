@@ -46,45 +46,40 @@
 
 #define DEH_UNSUPPORTED_MAPPING(deh_name)                     \
              {deh_name, NULL, -1},
-            
+
 #define DEH_END_MAPPING                                       \
              {NULL, NULL, -1}                                 \
         }                                                     \
     };
-
-    
 
 #define MAX_MAPPING_ENTRIES 32
 
 typedef struct deh_mapping_s deh_mapping_t;
 typedef struct deh_mapping_entry_s deh_mapping_entry_t;
 
-struct deh_mapping_entry_s 
-{
-    // field name
-   
-    char *name;
+struct deh_mapping_entry_s {
+	// field name
 
-    // location relative to the base in the deh_mapping_t struct
-    // If this is NULL, it is an unsupported mapping
+	char *name;
 
-    void *location;
+	// location relative to the base in the deh_mapping_t struct
+	// If this is NULL, it is an unsupported mapping
 
-    // field size
+	void *location;
 
-    int size;
+	// field size
+
+	int size;
 };
 
-struct deh_mapping_s
-{
-    void *base;
-    deh_mapping_entry_t entries[MAX_MAPPING_ENTRIES];
+struct deh_mapping_s {
+	void *base;
+	deh_mapping_entry_t entries[MAX_MAPPING_ENTRIES];
 };
 
-boolean DEH_SetMapping(deh_context_t *context, deh_mapping_t *mapping, 
-                       void *structptr, char *name, int value);
-void DEH_StructMD5Sum(md5_context_t *context, deh_mapping_t *mapping,
-                      void *structptr);
+boolean DEH_SetMapping(deh_context_t * context, deh_mapping_t * mapping,
+		       void *structptr, char *name, int value);
+void DEH_StructMD5Sum(md5_context_t * context, deh_mapping_t * mapping,
+		      void *structptr);
 
 #endif /* #ifndef DEH_MAPPING_H */
-

@@ -24,8 +24,7 @@
 //    start the game.
 //   
 
-
-#ifndef NET_GUI_H 
+#ifndef NET_GUI_H
 #define NET_GUI_H
 
 #include "doomtype.h"
@@ -33,4 +32,3 @@
 extern void NET_WaitForStart();
 
 #endif /* #ifndef NET_GUI_H */
-

@@ -51,11 +51,10 @@ static int num_iwad_dirs = 0;
 
 static void AddIWADDir(char *dir)
 {
-    if (num_iwad_dirs < MAX_IWAD_DIRS)
-    {
-        iwad_dirs[num_iwad_dirs] = dir;
-        ++num_iwad_dirs;
-    }
+	if (num_iwad_dirs < MAX_IWAD_DIRS) {
+		iwad_dirs[num_iwad_dirs] = dir;
+		++num_iwad_dirs;
+	}
 }
 
 // This is Windows-specific code that automatically finds the location
@@ -68,11 +67,10 @@ static void AddIWADDir(char *dir)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-typedef struct 
-{
-    HKEY root;
-    char *path;
-    char *value;
+typedef struct {
+	HKEY root;
+	char *path;
+	char *value;
 } registry_value_t;
 
 #define UNINSTALLER_STRING "\\uninstl.exe /S "
@@ -84,258 +82,236 @@ typedef struct
 //
 // With some munging we can find where Doom was installed.
 
-static registry_value_t uninstall_values[] = 
-{
-    // Ultimate Doom, CD version (Depths of Doom trilogy)
+static registry_value_t uninstall_values[] = {
+	// Ultimate Doom, CD version (Depths of Doom trilogy)
 
-    {
-        HKEY_LOCAL_MACHINE, 
-        "Software\\Microsoft\\Windows\\CurrentVersion\\"
-            "Uninstall\\Ultimate Doom for Windows 95",
-        "UninstallString",
-    },
+	{
+	 HKEY_LOCAL_MACHINE,
+	 "Software\\Microsoft\\Windows\\CurrentVersion\\"
+	 "Uninstall\\Ultimate Doom for Windows 95",
+	 "UninstallString",
+	 },
 
-    // Doom II, CD version (Depths of Doom trilogy)
+	// Doom II, CD version (Depths of Doom trilogy)
 
-    {
-        HKEY_LOCAL_MACHINE, 
-        "Software\\Microsoft\\Windows\\CurrentVersion\\"
-            "Uninstall\\Doom II for Windows 95",
-        "UninstallString",
-    },
+	{
+	 HKEY_LOCAL_MACHINE,
+	 "Software\\Microsoft\\Windows\\CurrentVersion\\"
+	 "Uninstall\\Doom II for Windows 95",
+	 "UninstallString",
+	 },
 
-    // Final Doom
+	// Final Doom
 
-    {
-        HKEY_LOCAL_MACHINE, 
-        "Software\\Microsoft\\Windows\\CurrentVersion\\"
-            "Uninstall\\Final Doom for Windows 95",
-        "UninstallString",
-    },
+	{
+	 HKEY_LOCAL_MACHINE,
+	 "Software\\Microsoft\\Windows\\CurrentVersion\\"
+	 "Uninstall\\Final Doom for Windows 95",
+	 "UninstallString",
+	 },
 
-    // Shareware version
+	// Shareware version
 
-    {
-        HKEY_LOCAL_MACHINE, 
-        "Software\\Microsoft\\Windows\\CurrentVersion\\"
-            "Uninstall\\Doom Shareware for Windows 95",
-        "UninstallString",
-    },
+	{
+	 HKEY_LOCAL_MACHINE,
+	 "Software\\Microsoft\\Windows\\CurrentVersion\\"
+	 "Uninstall\\Doom Shareware for Windows 95",
+	 "UninstallString",
+	 },
 };
 
 // Value installed by the Collector's Edition when it is installed
 
-static registry_value_t collectors_edition_value =
-{
-    HKEY_LOCAL_MACHINE,
-    "Software\\Activision\\DOOM Collector's Edition\\v1.0",
-    "INSTALLPATH",
+static registry_value_t collectors_edition_value = {
+	HKEY_LOCAL_MACHINE,
+	"Software\\Activision\\DOOM Collector's Edition\\v1.0",
+	"INSTALLPATH",
 };
 
 // Subdirectories of the above install path, where IWADs are installed.
 
-static char *collectors_edition_subdirs[] = 
-{
-    "Doom2",
-    "Final Doom",
-    "Ultimate Doom",
+static char *collectors_edition_subdirs[] = {
+	"Doom2",
+	"Final Doom",
+	"Ultimate Doom",
 };
 
 // Location where Steam is installed
 
-static registry_value_t steam_install_location =
-{
-    HKEY_LOCAL_MACHINE,
-    "Software\\Valve\\Steam",
-    "InstallPath",
+static registry_value_t steam_install_location = {
+	HKEY_LOCAL_MACHINE,
+	"Software\\Valve\\Steam",
+	"InstallPath",
 };
 
 // Subdirs of the steam install directory where IWADs are found
 
-static char *steam_install_subdirs[] =
-{
-    "steamapps\\common\\doom 2\\base",
-    "steamapps\\common\\final doom\\base",
-    "steamapps\\common\\ultimate doom\\base",
+static char *steam_install_subdirs[] = {
+	"steamapps\\common\\doom 2\\base",
+	"steamapps\\common\\final doom\\base",
+	"steamapps\\common\\ultimate doom\\base",
 };
 
-static char *GetRegistryString(registry_value_t *reg_val)
+static char *GetRegistryString(registry_value_t * reg_val)
 {
-    HKEY key;
-    DWORD len;
-    DWORD valtype;
-    char *result;
+	HKEY key;
+	DWORD len;
+	DWORD valtype;
+	char *result;
 
-    // Open the key (directory where the value is stored)
+	// Open the key (directory where the value is stored)
 
-    if (RegOpenKeyEx(reg_val->root, reg_val->path, 0, KEY_READ, &key) 
-          != ERROR_SUCCESS)
-    {
-        return NULL;
-    }
+	if (RegOpenKeyEx(reg_val->root, reg_val->path, 0, KEY_READ, &key)
+	    != ERROR_SUCCESS) {
+		return NULL;
+	}
+	// Find the type and length of the string
 
-    // Find the type and length of the string
+	if (RegQueryValueEx(key, reg_val->value, NULL, &valtype, NULL, &len)
+	    != ERROR_SUCCESS) {
+		return NULL;
+	}
+	// Only accept strings
 
-    if (RegQueryValueEx(key, reg_val->value, NULL, &valtype, NULL, &len) 
-          != ERROR_SUCCESS)
-    {
-        return NULL;
-    }
+	if (valtype != REG_SZ) {
+		return NULL;
+	}
+	// Allocate a buffer for the value and read the value
 
-    // Only accept strings
+	result = malloc(len);
 
-    if (valtype != REG_SZ)
-    {
-        return NULL;
-    }
+	if (RegQueryValueEx
+	    (key, reg_val->value, NULL, &valtype, (unsigned char *)result, &len)
+	    != ERROR_SUCCESS) {
+		free(result);
+		return NULL;
+	}
+	// Close the key
 
-    // Allocate a buffer for the value and read the value
+	RegCloseKey(key);
 
-    result = malloc(len);
-
-    if (RegQueryValueEx(key, reg_val->value, NULL, &valtype, (unsigned char *) result, &len) 
-          != ERROR_SUCCESS)
-    {
-        free(result);
-        return NULL;
-    }
-
-    // Close the key
-        
-    RegCloseKey(key);
-
-    return result;
+	return result;
 }
 
 // Check for the uninstall strings from the CD versions
 
 static void CheckUninstallStrings(void)
 {
-    unsigned int i;
+	unsigned int i;
 
-    for (i=0; i<arrlen(uninstall_values); ++i)
-    {
-        char *val;
-        char *path;
-        char *unstr;
+	for (i = 0; i < arrlen(uninstall_values); ++i) {
+		char *val;
+		char *path;
+		char *unstr;
 
-        val = GetRegistryString(&uninstall_values[i]);
+		val = GetRegistryString(&uninstall_values[i]);
 
-        if (val == NULL)
-        {
-            continue;
-        }
+		if (val == NULL) {
+			continue;
+		}
 
-        unstr = strstr(val, UNINSTALLER_STRING);
+		unstr = strstr(val, UNINSTALLER_STRING);
 
-        if (unstr == NULL)
-        {
-            free(val);
-        }
-        else
-        {
-            path = unstr + strlen(UNINSTALLER_STRING);
+		if (unstr == NULL) {
+			free(val);
+		} else {
+			path = unstr + strlen(UNINSTALLER_STRING);
 
-            AddIWADDir(path);
-        }
-    }
+			AddIWADDir(path);
+		}
+	}
 }
 
 // Check for Doom: Collector's Edition
 
 static void CheckCollectorsEdition(void)
 {
-    char *install_path;
-    char *subpath;
-    unsigned int i;
+	char *install_path;
+	char *subpath;
+	unsigned int i;
 
-    install_path = GetRegistryString(&collectors_edition_value);
+	install_path = GetRegistryString(&collectors_edition_value);
 
-    if (install_path == NULL)
-    {
-        return;
-    }
+	if (install_path == NULL) {
+		return;
+	}
 
-    for (i=0; i<arrlen(collectors_edition_subdirs); ++i)
-    {
-        subpath = malloc(strlen(install_path)
-                         + strlen(collectors_edition_subdirs[i])
-                         + 5);
+	for (i = 0; i < arrlen(collectors_edition_subdirs); ++i) {
+		subpath = malloc(strlen(install_path)
+				 + strlen(collectors_edition_subdirs[i])
+				 + 5);
 
-        sprintf(subpath, "%s\\%s", install_path, collectors_edition_subdirs[i]);
+		sprintf(subpath, "%s\\%s", install_path,
+			collectors_edition_subdirs[i]);
 
-        AddIWADDir(subpath);
-    }
+		AddIWADDir(subpath);
+	}
 
-    free(install_path);
+	free(install_path);
 }
-
 
 // Check for Doom downloaded via Steam
 
 static void CheckSteamEdition(void)
 {
-    char *install_path;
-    char *subpath;
-    size_t i;
+	char *install_path;
+	char *subpath;
+	size_t i;
 
-    install_path = GetRegistryString(&steam_install_location);
+	install_path = GetRegistryString(&steam_install_location);
 
-    if (install_path == NULL)
-    {
-        return;
-    }
+	if (install_path == NULL) {
+		return;
+	}
 
-    for (i=0; i<arrlen(steam_install_subdirs); ++i)
-    {
-        subpath = malloc(strlen(install_path) 
-                         + strlen(steam_install_subdirs[i]) + 5);
+	for (i = 0; i < arrlen(steam_install_subdirs); ++i) {
+		subpath = malloc(strlen(install_path)
+				 + strlen(steam_install_subdirs[i]) + 5);
 
-        sprintf(subpath, "%s\\%s", install_path, steam_install_subdirs[i]);
+		sprintf(subpath, "%s\\%s", install_path,
+			steam_install_subdirs[i]);
 
-        AddIWADDir(subpath);
-    }
+		AddIWADDir(subpath);
+	}
 }
 
 // Default install directories for DOS Doom
 
 static void CheckDOSDefaults(void)
 {
-    // These are the default install directories used by the deice
-    // installer program:
+	// These are the default install directories used by the deice
+	// installer program:
 
-    AddIWADDir("\\doom2");              // Doom II
-    AddIWADDir("\\plutonia");           // Final Doom
-    AddIWADDir("\\tnt");
-    AddIWADDir("\\doom_se");            // Ultimate Doom
-    AddIWADDir("\\doom");               // Shareware / Registered Doom
-    AddIWADDir("\\dooms");              // Shareware versions
-    AddIWADDir("\\doomsw");
+	AddIWADDir("\\doom2");	// Doom II
+	AddIWADDir("\\plutonia");	// Final Doom
+	AddIWADDir("\\tnt");
+	AddIWADDir("\\doom_se");	// Ultimate Doom
+	AddIWADDir("\\doom");	// Shareware / Registered Doom
+	AddIWADDir("\\dooms");	// Shareware versions
+	AddIWADDir("\\doomsw");
 }
 
 #endif
 
-static struct 
-{
-    char *name;
-    GameMission_t mission;
+static struct {
+	char *name;
+	GameMission_t mission;
 } iwads[] = {
-    {"doom2.wad",    doom2},
-    {"plutonia.wad", pack_plut},
-    {"tnt.wad",      pack_tnt},
-    {"doom.wad",     doom},
-    {"doom1.wad",    doom},
-    {"chex.wad",     doom},
-};
-            
+	{
+	"doom2.wad", doom2}, {
+	"plutonia.wad", pack_plut}, {
+	"tnt.wad", pack_tnt}, {
+	"doom.wad", doom}, {
+	"doom1.wad", doom}, {
+"chex.wad", doom},};
+
 // Hack for chex quest mode
 
 static void CheckChex(char *iwad_name)
 {
-    if (!strcmp(iwad_name, "chex.wad")) 
-    {
-        gameversion = exe_chex;
-    }
+	if (!strcmp(iwad_name, "chex.wad")) {
+		gameversion = exe_chex;
+	}
 }
 
 // Search a directory to try to find an IWAD
@@ -343,38 +319,34 @@ static void CheckChex(char *iwad_name)
 
 static char *SearchDirectoryForIWAD(char *dir)
 {
-    size_t i;
+	size_t i;
 
-    for (i=0; i<arrlen(iwads); ++i) 
-    {
-        char *filename; 
-        char *iwadname;
+	for (i = 0; i < arrlen(iwads); ++i) {
+		char *filename;
+		char *iwadname;
 
-        iwadname = DEH_String(iwads[i].name);
-        
-        filename = malloc(strlen(dir) + strlen(iwadname) + 3);
+		iwadname = DEH_String(iwads[i].name);
 
-        if (!strcmp(dir, "."))
-        {
-            strcpy(filename, iwadname);
-        }
-        else
-        {
-            sprintf(filename, "%s%c%s", dir, DIR_SEPARATOR, iwadname);
-        }
+		filename = malloc(strlen(dir) + strlen(iwadname) + 3);
 
-        if (M_FileExists(filename))
-        {
-            CheckChex(iwads[i].name);
-            gamemission = iwads[i].mission;
+		if (!strcmp(dir, ".")) {
+			strcpy(filename, iwadname);
+		} else {
+			sprintf(filename, "%s%c%s", dir, DIR_SEPARATOR,
+				iwadname);
+		}
 
-            return filename;
-        }
+		if (M_FileExists(filename)) {
+			CheckChex(iwads[i].name);
+			gamemission = iwads[i].mission;
 
-        free(filename);
-    }
+			return filename;
+		}
 
-    return NULL;
+		free(filename);
+	}
+
+	return NULL;
 }
 
 // When given an IWAD with the '-iwad' parameter,
@@ -382,29 +354,27 @@ static char *SearchDirectoryForIWAD(char *dir)
 
 static void IdentifyIWADByName(char *name)
 {
-    size_t i;
+	size_t i;
 
-    gamemission = none;
-    
-    for (i=0; i<arrlen(iwads); ++i)
-    {
-        char *iwadname;
+	gamemission = none;
 
-        iwadname = DEH_String(iwads[i].name);
+	for (i = 0; i < arrlen(iwads); ++i) {
+		char *iwadname;
 
-        if (strlen(name) < strlen(iwadname))
-            continue;
+		iwadname = DEH_String(iwads[i].name);
 
-        // Check if it ends in this IWAD name.
+		if (strlen(name) < strlen(iwadname))
+			continue;
 
-        if (!strcasecmp(name + strlen(name) - strlen(iwadname), 
-                        iwadname))
-        {
-            CheckChex(iwads[i].name);
-            gamemission = iwads[i].mission;
-            break;
-        }
-    }
+		// Check if it ends in this IWAD name.
+
+		if (!strcasecmp(name + strlen(name) - strlen(iwadname),
+				iwadname)) {
+			CheckChex(iwads[i].name);
+			gamemission = iwads[i].mission;
+			break;
+		}
+	}
 }
 
 //
@@ -413,49 +383,43 @@ static void IdentifyIWADByName(char *name)
 
 static void AddDoomWadPath(void)
 {
-    char *doomwadpath;
-    char *p;
+	char *doomwadpath;
+	char *p;
 
-    // Check the DOOMWADPATH environment variable.
+	// Check the DOOMWADPATH environment variable.
 
-    doomwadpath = getenv("DOOMWADPATH");
+	doomwadpath = getenv("DOOMWADPATH");
 
-    if (doomwadpath == NULL)
-    {
-        return;
-    }
+	if (doomwadpath == NULL) {
+		return;
+	}
 
-    doomwadpath = strdup(doomwadpath);
+	doomwadpath = strdup(doomwadpath);
 
-    // Add the initial directory
+	// Add the initial directory
 
-    AddIWADDir(doomwadpath);
+	AddIWADDir(doomwadpath);
 
-    // Split into individual dirs within the list.
+	// Split into individual dirs within the list.
 
-    p = doomwadpath;
+	p = doomwadpath;
 
-    for (;;)
-    {
-        p = strchr(p, PATH_SEPARATOR);
+	for (;;) {
+		p = strchr(p, PATH_SEPARATOR);
 
-        if (p != NULL)
-        {
-            // Break at the separator and store the right hand side
-            // as another iwad dir
-  
-            *p = '\0';
-            p += 1;
+		if (p != NULL) {
+			// Break at the separator and store the right hand side
+			// as another iwad dir
 
-            AddIWADDir(p);
-        }
-        else
-        {
-            break;
-        }
-    }
+			*p = '\0';
+			p += 1;
+
+			AddIWADDir(p);
+		} else {
+			break;
+		}
+	}
 }
-
 
 //
 // Build a list of IWAD files
@@ -463,51 +427,47 @@ static void AddDoomWadPath(void)
 
 static void BuildIWADDirList(void)
 {
-    char *doomwaddir;
+	char *doomwaddir;
 
-    if (iwad_dirs_built)
-    {
-        return;
-    }
+	if (iwad_dirs_built) {
+		return;
+	}
+	// Look in the current directory.  Doom always does this.
 
-    // Look in the current directory.  Doom always does this.
+	AddIWADDir(".");
 
-    AddIWADDir(".");
+	// Add DOOMWADDIR if it is in the environment
 
-    // Add DOOMWADDIR if it is in the environment
+	doomwaddir = getenv("DOOMWADDIR");
 
-    doomwaddir = getenv("DOOMWADDIR");
+	if (doomwaddir != NULL) {
+		AddIWADDir(doomwaddir);
+	}
+	// Add dirs from DOOMWADPATH
 
-    if (doomwaddir != NULL)
-    {
-        AddIWADDir(doomwaddir);
-    }        
-
-    // Add dirs from DOOMWADPATH
-
-    AddDoomWadPath();
+	AddDoomWadPath();
 
 #ifdef _WIN32
 
-    // Search the registry and find where IWADs have been installed.
+	// Search the registry and find where IWADs have been installed.
 
-    CheckUninstallStrings();
-    CheckCollectorsEdition();
-    CheckSteamEdition();
-    CheckDOSDefaults();
+	CheckUninstallStrings();
+	CheckCollectorsEdition();
+	CheckSteamEdition();
+	CheckDOSDefaults();
 
 #else
 
-    // Standard places where IWAD files are installed under Unix.
+	// Standard places where IWAD files are installed under Unix.
 
-    AddIWADDir("/usr/share/games/doom");
-    AddIWADDir("/usr/local/share/games/doom");
+	AddIWADDir("/usr/share/games/doom");
+	AddIWADDir("/usr/local/share/games/doom");
 
 #endif
 
-    // Don't run this function again.
+	// Don't run this function again.
 
-    iwad_dirs_built = true;
+	iwad_dirs_built = true;
 }
 
 //
@@ -516,41 +476,38 @@ static void BuildIWADDirList(void)
 
 char *D_FindWADByName(char *name)
 {
-    char *buf;
-    int i;
-    boolean exists;
-    
-    // Absolute path?
+	char *buf;
+	int i;
+	boolean exists;
 
-    if (M_FileExists(name))
-    {
-        return name;
-    }
+	// Absolute path?
 
-    BuildIWADDirList();
-    
-    // Search through all IWAD paths for a file with the given name.
+	if (M_FileExists(name)) {
+		return name;
+	}
 
-    for (i=0; i<num_iwad_dirs; ++i)
-    {
-        // Construct a string for the full path
+	BuildIWADDirList();
 
-        buf = malloc(strlen(iwad_dirs[i]) + strlen(name) + 5);
-        sprintf(buf, "%s%c%s", iwad_dirs[i], DIR_SEPARATOR, name);
+	// Search through all IWAD paths for a file with the given name.
 
-        exists = M_FileExists(buf);
+	for (i = 0; i < num_iwad_dirs; ++i) {
+		// Construct a string for the full path
 
-        if (exists)
-        {
-            return buf;
-        }
+		buf = malloc(strlen(iwad_dirs[i]) + strlen(name) + 5);
+		sprintf(buf, "%s%c%s", iwad_dirs[i], DIR_SEPARATOR, name);
 
-        free(buf);
-    }
+		exists = M_FileExists(buf);
 
-    // File not found
+		if (exists) {
+			return buf;
+		}
 
-    return NULL;
+		free(buf);
+	}
+
+	// File not found
+
+	return NULL;
 }
 
 //
@@ -562,18 +519,15 @@ char *D_FindWADByName(char *name)
 
 char *D_TryFindWADByName(char *filename)
 {
-    char *result;
+	char *result;
 
-    result = D_FindWADByName(filename);
+	result = D_FindWADByName(filename);
 
-    if (result != NULL)
-    {
-        return result;
-    }
-    else
-    {
-        return filename;
-    }
+	if (result != NULL) {
+		return result;
+	} else {
+		return filename;
+	}
 }
 
 //
@@ -585,51 +539,46 @@ char *D_TryFindWADByName(char *filename)
 
 char *D_FindIWAD(void)
 {
-    char *result;
-    char *iwadfile;
-    int iwadparm;
-    int i;
+	char *result;
+	char *iwadfile;
+	int iwadparm;
+	int i;
 
-    // Check for the -iwad parameter
+	// Check for the -iwad parameter
 
-    //!
-    // Specify an IWAD file to use.
-    //
-    // @arg <file>
-    //
+	//!
+	// Specify an IWAD file to use.
+	//
+	// @arg <file>
+	//
 
-    iwadparm = M_CheckParm("-iwad");
+	iwadparm = M_CheckParm("-iwad");
 
-    if (iwadparm)
-    {
-        // Search through IWAD dirs for an IWAD with the given name.
+	if (iwadparm) {
+		// Search through IWAD dirs for an IWAD with the given name.
 
-        iwadfile = myargv[iwadparm + 1];
+		iwadfile = myargv[iwadparm + 1];
 
-        result = D_FindWADByName(iwadfile);
+		result = D_FindWADByName(iwadfile);
 
-        if (result == NULL)
-        {
-            I_Error("IWAD file '%s' not found!", iwadfile);
-        }
-        
-        IdentifyIWADByName(result);
-    }
-    else
-    {
-        // Search through the list and look for an IWAD
+		if (result == NULL) {
+			I_Error("IWAD file '%s' not found!", iwadfile);
+		}
 
-        result = NULL;
+		IdentifyIWADByName(result);
+	} else {
+		// Search through the list and look for an IWAD
 
-        BuildIWADDirList();
-    
-        for (i=0; result == NULL && i<num_iwad_dirs; ++i)
-        {
-            result = SearchDirectoryForIWAD(iwad_dirs[i]);
-        }
-    }
+		result = NULL;
 
-    return result;
+		BuildIWADDirList();
+
+		for (i = 0; result == NULL && i < num_iwad_dirs; ++i) {
+			result = SearchDirectoryForIWAD(iwad_dirs[i]);
+		}
+	}
+
+	return result;
 }
 
 // 
@@ -638,37 +587,34 @@ char *D_FindIWAD(void)
 
 static char *SaveGameIWADName(void)
 {
-    size_t i;
+	size_t i;
 
-    // Chex quest hack
+	// Chex quest hack
 
-    if (gameversion == exe_chex)
-    {
-        return "chex.wad";
-    }
+	if (gameversion == exe_chex) {
+		return "chex.wad";
+	}
+	// Find what subdirectory to use for savegames
+	//
+	// They should be stored in something like
+	//    ~/.chocolate-doom/savegames/doom.wad/
+	//
+	// The directory depends on the IWAD, so that savegames for
+	// different IWADs are kept separate.
+	//
+	// Note that we match on gamemission rather than on IWAD name.
+	// This ensures that doom1.wad and doom.wad saves are stored
+	// in the same place.
 
-    // Find what subdirectory to use for savegames
-    //
-    // They should be stored in something like
-    //    ~/.chocolate-doom/savegames/doom.wad/
-    //
-    // The directory depends on the IWAD, so that savegames for
-    // different IWADs are kept separate.
-    //
-    // Note that we match on gamemission rather than on IWAD name.
-    // This ensures that doom1.wad and doom.wad saves are stored
-    // in the same place.
+	for (i = 0; i < arrlen(iwads); ++i) {
+		if (gamemission == iwads[i].mission) {
+			return iwads[i].name;
+		}
+	}
 
-    for (i=0; i<arrlen(iwads); ++i)
-    {
-        if (gamemission == iwads[i].mission)
-        {
-            return iwads[i].name;
-        }
-    }
-    
-    return NULL;
+	return NULL;
 }
+
 // 
 // SetSaveGameDir
 //
@@ -677,31 +623,27 @@ static char *SaveGameIWADName(void)
 
 void D_SetSaveGameDir(void)
 {
-    char *iwad_name;
+	char *iwad_name;
 
-    if (!strcmp(configdir, ""))
-    {
-        // Use the current directory, just like configdir.
+	if (!strcmp(configdir, "")) {
+		// Use the current directory, just like configdir.
 
-        savegamedir = strdup("");
-    }
-    else
-    {
-        // Directory for savegames
+		savegamedir = strdup("");
+	} else {
+		// Directory for savegames
 
-        iwad_name = SaveGameIWADName();
+		iwad_name = SaveGameIWADName();
 
-        if (iwad_name == NULL) 
-        {
-            iwad_name = "unknown.wad";
-        }
+		if (iwad_name == NULL) {
+			iwad_name = "unknown.wad";
+		}
 
-        savegamedir = Z_Malloc(strlen(configdir) + 30, PU_STATIC, 0);
-        sprintf(savegamedir, "%ssavegames%c%s%c", configdir,
-                             DIR_SEPARATOR, iwad_name, DIR_SEPARATOR);
+		savegamedir = Z_Malloc(strlen(configdir) + 30, PU_STATIC, 0);
+		sprintf(savegamedir, "%ssavegames%c%s%c", configdir,
+			DIR_SEPARATOR, iwad_name, DIR_SEPARATOR);
 
-        M_MakeDirectory(savegamedir);
-    }
+		M_MakeDirectory(savegamedir);
+	}
 }
 
 // Strings for dehacked replacements of the startup banner
@@ -709,36 +651,28 @@ void D_SetSaveGameDir(void)
 // These are from the original source: some of them are perhaps
 // not used in any dehacked patches
 
-static char *banners[] = 
-{
-    // doom1.wad
-    "                            "
-    "DOOM Shareware Startup v%i.%i"
-    "                           ",
-    // doom.wad
-    "                            "
-    "DOOM Registered Startup v%i.%i"
-    "                           ",
-    // Registered DOOM uses this
-    "                          "
-    "DOOM System Startup v%i.%i"
-    "                          ",
-    // doom.wad (Ultimate DOOM)
-    "                         "
-    "The Ultimate DOOM Startup v%i.%i"
-    "                        ",
-    // doom2.wad
-    "                         "
-    "DOOM 2: Hell on Earth v%i.%i"
-    "                           ",
-    // tnt.wad
-    "                     "
-    "DOOM 2: TNT - Evilution v%i.%i"
-    "                           ",
-    // plutonia.wad
-    "                   "
-    "DOOM 2: Plutonia Experiment v%i.%i"
-    "                           ",
+static char *banners[] = {
+	// doom1.wad
+	"                            "
+	    "DOOM Shareware Startup v%i.%i" "                           ",
+	// doom.wad
+	"                            "
+	    "DOOM Registered Startup v%i.%i" "                           ",
+	// Registered DOOM uses this
+	"                          "
+	    "DOOM System Startup v%i.%i" "                          ",
+	// doom.wad (Ultimate DOOM)
+	"                         "
+	    "The Ultimate DOOM Startup v%i.%i" "                        ",
+	// doom2.wad
+	"                         "
+	    "DOOM 2: Hell on Earth v%i.%i" "                           ",
+	// tnt.wad
+	"                     "
+	    "DOOM 2: TNT - Evilution v%i.%i" "                           ",
+	// plutonia.wad
+	"                   "
+	    "DOOM 2: Plutonia Experiment v%i.%i" "                           ",
 };
 
 //
@@ -748,38 +682,37 @@ static char *banners[] =
 
 static char *GetGameName(char *gamename)
 {
-    size_t i;
-    char *deh_sub;
-    
-    for (i=0; i<arrlen(banners); ++i)
-    {
-        // Has the banner been replaced?
+	size_t i;
+	char *deh_sub;
 
-        deh_sub = DEH_String(banners[i]);
-        
-        if (deh_sub != banners[i])
-        {
-            // Has been replaced
-            // We need to expand via printf to include the Doom version 
-            // number
-            // We also need to cut off spaces to get the basic name
+	for (i = 0; i < arrlen(banners); ++i) {
+		// Has the banner been replaced?
 
-            gamename = Z_Malloc(strlen(deh_sub) + 10, PU_STATIC, 0);
-            sprintf(gamename, deh_sub, DOOM_VERSION / 100, DOOM_VERSION % 100);
+		deh_sub = DEH_String(banners[i]);
 
-            while (gamename[0] != '\0' && isspace(gamename[0]))
-                strcpy(gamename, gamename+1);
+		if (deh_sub != banners[i]) {
+			// Has been replaced
+			// We need to expand via printf to include the Doom version 
+			// number
+			// We also need to cut off spaces to get the basic name
 
-            while (gamename[0] != '\0' && isspace(gamename[strlen(gamename)-1]))
-                gamename[strlen(gamename) - 1] = '\0';
-            
-            return gamename;
-        }
-    }
+			gamename = Z_Malloc(strlen(deh_sub) + 10, PU_STATIC, 0);
+			sprintf(gamename, deh_sub, DOOM_VERSION / 100,
+				DOOM_VERSION % 100);
 
-    return gamename;
+			while (gamename[0] != '\0' && isspace(gamename[0]))
+				strcpy(gamename, gamename + 1);
+
+			while (gamename[0] != '\0'
+			       && isspace(gamename[strlen(gamename) - 1]))
+				gamename[strlen(gamename) - 1] = '\0';
+
+			return gamename;
+		}
+	}
+
+	return gamename;
 }
-
 
 //
 // Find out what version of Doom is playing.
@@ -787,103 +720,82 @@ static char *GetGameName(char *gamename)
 
 void D_IdentifyVersion(void)
 {
-    // gamemission is set up by the D_FindIWAD function.  But if 
-    // we specify '-iwad', we have to identify using 
-    // IdentifyIWADByName.  However, if the iwad does not match
-    // any known IWAD name, we may have a dilemma.  Try to 
-    // identify by its contents.
+	// gamemission is set up by the D_FindIWAD function.  But if 
+	// we specify '-iwad', we have to identify using 
+	// IdentifyIWADByName.  However, if the iwad does not match
+	// any known IWAD name, we may have a dilemma.  Try to 
+	// identify by its contents.
 
-    if (gamemission == none)
-    {
-        unsigned int i;
+	if (gamemission == none) {
+		unsigned int i;
 
-        for (i=0; i<numlumps; ++i)
-        {
-            if (!strncasecmp(lumpinfo[i].name, "MAP01", 8))
-            {
-                gamemission = doom2;
-                break;
-            } 
-            else if (!strncasecmp(lumpinfo[i].name, "E1M1", 8))
-            {
-                gamemission = doom;
-                break;
-            }
-        }
+		for (i = 0; i < numlumps; ++i) {
+			if (!strncasecmp(lumpinfo[i].name, "MAP01", 8)) {
+				gamemission = doom2;
+				break;
+			} else if (!strncasecmp(lumpinfo[i].name, "E1M1", 8)) {
+				gamemission = doom;
+				break;
+			}
+		}
 
-        if (gamemission == none)
-        {
-            // Still no idea.  I don't think this is going to work.
+		if (gamemission == none) {
+			// Still no idea.  I don't think this is going to work.
 
-            I_Error("Unknown or invalid IWAD file.");
-        }
-    }
+			I_Error("Unknown or invalid IWAD file.");
+		}
+	}
+	// Make sure gamemode is set up correctly
 
-    // Make sure gamemode is set up correctly
+	if (gamemission == doom) {
+		// Doom 1.  But which version?
 
-    if (gamemission == doom)
-    {
-        // Doom 1.  But which version?
+		if (W_CheckNumForName("E4M1") > 0) {
+			// Ultimate Doom
 
-        if (W_CheckNumForName("E4M1") > 0)
-        {
-            // Ultimate Doom
+			gamemode = retail;
+		} else if (W_CheckNumForName("E3M1") > 0) {
+			gamemode = registered;
+		} else {
+			gamemode = shareware;
+		}
+	} else {
+		// Doom 2 of some kind.
 
-            gamemode = retail;
-        } 
-        else if (W_CheckNumForName("E3M1") > 0)
-        {
-            gamemode = registered;
-        }
-        else
-        {
-            gamemode = shareware;
-        }
-    }
-    else
-    {
-        // Doom 2 of some kind.
-
-        gamemode = commercial;
-    }
+		gamemode = commercial;
+	}
 }
 
 // Set the gamedescription string
 
 void D_SetGameDescription(void)
 {
-    gamedescription = "Unknown";
+	gamedescription = "Unknown";
 
-    if (gamemission == doom)
-    {
-        // Doom 1.  But which version?
+	if (gamemission == doom) {
+		// Doom 1.  But which version?
 
-        if (gamemode == retail)
-        {
-            // Ultimate Doom
+		if (gamemode == retail) {
+			// Ultimate Doom
 
-            gamedescription = GetGameName("The Ultimate DOOM");
-        } 
-        else if (gamemode == registered)
-        {
-            gamedescription = GetGameName("DOOM Registered");
-        }
-        else if (gamemode == shareware)
-        {
-            gamedescription = GetGameName("DOOM Shareware");
-        }
-    }
-    else
-    {
-        // Doom 2 of some kind.  But which mission?
+			gamedescription = GetGameName("The Ultimate DOOM");
+		} else if (gamemode == registered) {
+			gamedescription = GetGameName("DOOM Registered");
+		} else if (gamemode == shareware) {
+			gamedescription = GetGameName("DOOM Shareware");
+		}
+	} else {
+		// Doom 2 of some kind.  But which mission?
 
-        if (gamemission == doom2)
-            gamedescription = GetGameName("DOOM 2: Hell on Earth");
-        else if (gamemission == pack_plut)
-            gamedescription = GetGameName("DOOM 2: Plutonia Experiment"); 
-        else if (gamemission == pack_tnt)
-            gamedescription = GetGameName("DOOM 2: TNT - Evilution");
-    }
+		if (gamemission == doom2)
+			gamedescription = GetGameName("DOOM 2: Hell on Earth");
+		else if (gamemission == pack_plut)
+			gamedescription =
+			    GetGameName("DOOM 2: Plutonia Experiment");
+		else if (gamemission == pack_tnt)
+			gamedescription =
+			    GetGameName("DOOM 2: TNT - Evilution");
+	}
 }
 
 // Clever hack: Setup can invoke Doom to determine which IWADs are installed.
@@ -892,21 +804,18 @@ void D_SetGameDescription(void)
 
 void D_FindInstalledIWADs(void)
 {
-    unsigned int i;
-    int result;
+	unsigned int i;
+	int result;
 
-    BuildIWADDirList();
+	BuildIWADDirList();
 
-    result = 0;
+	result = 0;
 
-    for (i=0; i<arrlen(iwads); ++i)
-    {
-        if (D_FindWADByName(iwads[i].name) != NULL)
-        {
-            result |= 1 << i;
-        }
-    }
+	for (i = 0; i < arrlen(iwads); ++i) {
+		if (D_FindWADByName(iwads[i].name) != NULL) {
+			result |= 1 << i;
+		}
+	}
 
-    exit(result);
+	exit(result);
 }
-

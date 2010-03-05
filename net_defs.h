@@ -24,7 +24,7 @@
 //-----------------------------------------------------------------------------
 
 #ifndef NET_DEFS_H
-#define NET_DEFS_H 
+#define NET_DEFS_H
 
 #include "doomdef.h"
 #include "doomtype.h"
@@ -35,53 +35,50 @@ typedef struct _net_packet_s net_packet_t;
 typedef struct _net_addr_s net_addr_t;
 typedef struct _net_context_s net_context_t;
 
-struct _net_packet_s
-{
-    byte *data;
-    size_t len;
-    size_t alloced;
-    unsigned int pos;
+struct _net_packet_s {
+	byte *data;
+	size_t len;
+	size_t alloced;
+	unsigned int pos;
 };
 
-struct _net_module_s
-{
-    // Initialise this module for use as a client
+struct _net_module_s {
+	// Initialise this module for use as a client
 
-    boolean (*InitClient)(void);
+	boolean(*InitClient) (void);
 
-    // Initialise this module for use as a server
+	// Initialise this module for use as a server
 
-    boolean (*InitServer)(void);
+	boolean(*InitServer) (void);
 
-    // Send a packet
+	// Send a packet
 
-    void (*SendPacket)(net_addr_t *addr, net_packet_t *packet);
+	void (*SendPacket) (net_addr_t * addr, net_packet_t * packet);
 
-    // Check for new packets to receive
-    //
-    // Returns true if packet received
+	// Check for new packets to receive
+	//
+	// Returns true if packet received
 
-    boolean (*RecvPacket)(net_addr_t **addr, net_packet_t **packet);
+	 boolean(*RecvPacket) (net_addr_t ** addr, net_packet_t ** packet);
 
-    // Converts an address to a string
+	// Converts an address to a string
 
-    void (*AddrToString)(net_addr_t *addr, char *buffer, int buffer_len);
+	void (*AddrToString) (net_addr_t * addr, char *buffer, int buffer_len);
 
-    // Free back an address when no longer in use
+	// Free back an address when no longer in use
 
-    void (*FreeAddress)(net_addr_t *addr);
+	void (*FreeAddress) (net_addr_t * addr);
 
-    // Try to resolve a name to an address
+	// Try to resolve a name to an address
 
-    net_addr_t *(*ResolveAddress)(char *addr);
+	net_addr_t *(*ResolveAddress) (char *addr);
 };
 
 // net_addr_t
 
-struct _net_addr_s
-{
-    net_module_t *module;
-    void *handle;
+struct _net_addr_s {
+	net_module_t *module;
+	void *handle;
 };
 
 // magic number sent when connecting to check this is a valid client
@@ -94,41 +91,39 @@ struct _net_addr_s
 
 // packet types
 
-typedef enum 
-{
-    NET_PACKET_TYPE_SYN,
-    NET_PACKET_TYPE_ACK,
-    NET_PACKET_TYPE_REJECTED,
-    NET_PACKET_TYPE_KEEPALIVE,
-    NET_PACKET_TYPE_WAITING_DATA,
-    NET_PACKET_TYPE_GAMESTART,
-    NET_PACKET_TYPE_GAMEDATA,
-    NET_PACKET_TYPE_GAMEDATA_ACK,
-    NET_PACKET_TYPE_DISCONNECT,
-    NET_PACKET_TYPE_DISCONNECT_ACK,
-    NET_PACKET_TYPE_RELIABLE_ACK,
-    NET_PACKET_TYPE_GAMEDATA_RESEND,
-    NET_PACKET_TYPE_CONSOLE_MESSAGE,
-    NET_PACKET_TYPE_QUERY,
-    NET_PACKET_TYPE_QUERY_RESPONSE,
+typedef enum {
+	NET_PACKET_TYPE_SYN,
+	NET_PACKET_TYPE_ACK,
+	NET_PACKET_TYPE_REJECTED,
+	NET_PACKET_TYPE_KEEPALIVE,
+	NET_PACKET_TYPE_WAITING_DATA,
+	NET_PACKET_TYPE_GAMESTART,
+	NET_PACKET_TYPE_GAMEDATA,
+	NET_PACKET_TYPE_GAMEDATA_ACK,
+	NET_PACKET_TYPE_DISCONNECT,
+	NET_PACKET_TYPE_DISCONNECT_ACK,
+	NET_PACKET_TYPE_RELIABLE_ACK,
+	NET_PACKET_TYPE_GAMEDATA_RESEND,
+	NET_PACKET_TYPE_CONSOLE_MESSAGE,
+	NET_PACKET_TYPE_QUERY,
+	NET_PACKET_TYPE_QUERY_RESPONSE,
 } net_packet_type_t;
 
-typedef struct 
-{
-    int ticdup;
-    int extratics;
-    int deathmatch;
-    int episode;
-    int nomonsters;
-    int fast_monsters;
-    int respawn_monsters;
-    int map;
-    int skill;
-    int gameversion;
-    int lowres_turn;
-    int new_sync;
-    int timelimit;
-    int loadgame;
+typedef struct {
+	int ticdup;
+	int extratics;
+	int deathmatch;
+	int episode;
+	int nomonsters;
+	int fast_monsters;
+	int respawn_monsters;
+	int map;
+	int skill;
+	int gameversion;
+	int lowres_turn;
+	int new_sync;
+	int timelimit;
+	int loadgame;
 } net_gamesettings_t;
 
 #define NET_TICDIFF_FORWARD      (1 << 0)
@@ -138,34 +133,30 @@ typedef struct
 #define NET_TICDIFF_CONSISTANCY  (1 << 4)
 #define NET_TICDIFF_CHATCHAR     (1 << 5)
 
-typedef struct
-{
-    unsigned int diff;
-    ticcmd_t cmd;
+typedef struct {
+	unsigned int diff;
+	ticcmd_t cmd;
 } net_ticdiff_t;
 
 // Complete set of ticcmds from all players
 
-typedef struct 
-{
-    signed int latency;
-    unsigned int seq;
-    boolean playeringame[MAXPLAYERS];
-    net_ticdiff_t cmds[MAXPLAYERS];
+typedef struct {
+	signed int latency;
+	unsigned int seq;
+	boolean playeringame[MAXPLAYERS];
+	net_ticdiff_t cmds[MAXPLAYERS];
 } net_full_ticcmd_t;
 
 // Data sent in response to server queries
 
-typedef struct
-{
-    char *version;
-    int server_state;
-    int num_players;
-    int max_players;
-    int gamemode;
-    int gamemission;
-    char *description;
+typedef struct {
+	char *version;
+	int server_state;
+	int num_players;
+	int max_players;
+	int gamemode;
+	int gamemission;
+	char *description;
 } net_querydata_t;
 
 #endif /* #ifndef NET_DEFS_H */
-

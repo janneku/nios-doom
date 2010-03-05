@@ -140,99 +140,87 @@ int deh_bfg_cells_per_shot = DEH_DEFAULT_BFG_CELLS_PER_SHOT;
 
 int deh_species_infighting = DEH_DEFAULT_SPECIES_INFIGHTING;
 
-static struct
-{
-    char *deh_name;
-    int *value;
+static struct {
+	char *deh_name;
+	int *value;
 } misc_settings[] = {
-    {"Initial Health",      &deh_initial_health},
-    {"Initial Bullets",     &deh_initial_bullets},
-    {"Max Health",          &deh_max_health},
-    {"Max Armor",           &deh_max_armor},
-    {"Green Armor Class",   &deh_green_armor_class},
-    {"Blue Armor Class",    &deh_blue_armor_class},
-    {"Max Soulsphere",      &deh_max_soulsphere},
-    {"Soulsphere Health",   &deh_soulsphere_health},
-    {"Megasphere Health",   &deh_megasphere_health},
-    {"God Mode Health",     &deh_god_mode_health},
-    {"IDFA Armor",          &deh_idfa_armor},
-    {"IDFA Armor Class",    &deh_idfa_armor_class},
-    {"IDKFA Armor",         &deh_idkfa_armor},
-    {"IDKFA Armor Class",   &deh_idkfa_armor_class},
-    {"BFG Cells/Shot",      &deh_bfg_cells_per_shot},
+	{
+	"Initial Health", &deh_initial_health}, {
+	"Initial Bullets", &deh_initial_bullets}, {
+	"Max Health", &deh_max_health}, {
+	"Max Armor", &deh_max_armor}, {
+	"Green Armor Class", &deh_green_armor_class}, {
+	"Blue Armor Class", &deh_blue_armor_class}, {
+	"Max Soulsphere", &deh_max_soulsphere}, {
+	"Soulsphere Health", &deh_soulsphere_health}, {
+	"Megasphere Health", &deh_megasphere_health}, {
+	"God Mode Health", &deh_god_mode_health}, {
+	"IDFA Armor", &deh_idfa_armor}, {
+	"IDFA Armor Class", &deh_idfa_armor_class}, {
+	"IDKFA Armor", &deh_idkfa_armor}, {
+	"IDKFA Armor Class", &deh_idkfa_armor_class}, {
+"BFG Cells/Shot", &deh_bfg_cells_per_shot},};
+
+static void *DEH_MiscStart(deh_context_t * context, char *line)
+{
+	return NULL;
+}
+
+static void DEH_MiscParseLine(deh_context_t * context, char *line, void *tag)
+{
+	char *variable_name, *value;
+	int ivalue;
+	size_t i;
+
+	if (!DEH_ParseAssignment(line, &variable_name, &value)) {
+		// Failed to parse
+
+		DEH_Warning(context, "Failed to parse assignment");
+		return;
+	}
+
+	ivalue = atoi(value);
+
+	if (!strcasecmp(variable_name, "Monsters Infight")) {
+		// See notes above.
+
+		if (ivalue == 202) {
+			deh_species_infighting = 0;
+		} else if (ivalue == 221) {
+			deh_species_infighting = 1;
+		} else {
+			DEH_Warning(context,
+				    "Invalid value for 'Monsters Infight': %i",
+				    ivalue);
+		}
+
+		return;
+	}
+
+	for (i = 0; i < arrlen(misc_settings); ++i) {
+		if (!strcasecmp(variable_name, misc_settings[i].deh_name)) {
+			*misc_settings[i].value = ivalue;
+			return;
+		}
+	}
+
+	DEH_Warning(context, "Unknown Misc variable '%s'", variable_name);
+}
+
+static void DEH_MiscMD5Sum(md5_context_t * context)
+{
+	unsigned int i;
+
+	for (i = 0; i < arrlen(misc_settings); ++i) {
+		MD5_UpdateInt32(context, *misc_settings[i].value);
+	}
+}
+
+deh_section_t deh_section_misc = {
+	"Misc",
+	NULL,
+	DEH_MiscStart,
+	DEH_MiscParseLine,
+	NULL,
+	DEH_MiscMD5Sum,
 };
-
-static void *DEH_MiscStart(deh_context_t *context, char *line)
-{
-    return NULL;
-}
-
-static void DEH_MiscParseLine(deh_context_t *context, char *line, void *tag)
-{
-    char *variable_name, *value;
-    int ivalue;
-    size_t i;
-
-    if (!DEH_ParseAssignment(line, &variable_name, &value))
-    {
-        // Failed to parse
-
-        DEH_Warning(context, "Failed to parse assignment");
-        return;
-    }
-
-    ivalue = atoi(value);
-
-    if (!strcasecmp(variable_name, "Monsters Infight"))
-    {
-        // See notes above.
- 
-        if (ivalue == 202)
-        {
-            deh_species_infighting = 0;
-        }
-        else if (ivalue == 221)
-        {
-            deh_species_infighting = 1;
-        }
-        else
-        {
-            DEH_Warning(context, 
-                        "Invalid value for 'Monsters Infight': %i", ivalue);
-        }
-        
-        return;
-    }
-
-    for (i=0; i<arrlen(misc_settings); ++i)
-    {
-        if (!strcasecmp(variable_name, misc_settings[i].deh_name))
-        {
-            *misc_settings[i].value = ivalue;
-            return;
-        }
-    }
-
-    DEH_Warning(context, "Unknown Misc variable '%s'", variable_name);
-}
-
-static void DEH_MiscMD5Sum(md5_context_t *context)
-{
-    unsigned int i;
-
-    for (i=0; i<arrlen(misc_settings); ++i)
-    {
-        MD5_UpdateInt32(context, *misc_settings[i].value);
-    }
-}
-
-deh_section_t deh_section_misc =
-{
-    "Misc",
-    NULL,
-    DEH_MiscStart,
-    DEH_MiscParseLine,
-    NULL,
-    DEH_MiscMD5Sum,
-};
-

@@ -35,14 +35,13 @@
 #include "deh_defs.h"
 #include "deh_io.h"
 
-struct deh_context_s
-{
-    FILE *stream;
-    char *filename;
-    int linenum;
-    boolean last_was_newline;
-    char *readbuffer;
-    int readbuffer_size;
+struct deh_context_s {
+	FILE *stream;
+	char *filename;
+	int linenum;
+	boolean last_was_newline;
+	char *readbuffer;
+	int readbuffer_size;
 };
 
 // Open a dehacked file for reading
@@ -50,162 +49,150 @@ struct deh_context_s
 
 deh_context_t *DEH_OpenFile(char *filename)
 {
-    FILE *fstream;
-    deh_context_t *context;
-    
-    fstream = fopen(filename, "r");
+	FILE *fstream;
+	deh_context_t *context;
 
-    if (fstream == NULL)
-        return NULL;
+	fstream = fopen(filename, "r");
 
-    context = Z_Malloc(sizeof(*context), PU_STATIC, NULL);
-    context->stream = fstream;
-    
-    // Initial read buffer size of 128 bytes
+	if (fstream == NULL)
+		return NULL;
 
-    context->readbuffer_size = 128;
-    context->readbuffer = Z_Malloc(context->readbuffer_size, PU_STATIC, NULL);
-    context->filename = filename;
-    context->linenum = 0;
-    context->last_was_newline = true;
+	context = Z_Malloc(sizeof(*context), PU_STATIC, NULL);
+	context->stream = fstream;
 
-    return context;
+	// Initial read buffer size of 128 bytes
+
+	context->readbuffer_size = 128;
+	context->readbuffer =
+	    Z_Malloc(context->readbuffer_size, PU_STATIC, NULL);
+	context->filename = filename;
+	context->linenum = 0;
+	context->last_was_newline = true;
+
+	return context;
 }
 
 // Close dehacked file
 
-void DEH_CloseFile(deh_context_t *context)
+void DEH_CloseFile(deh_context_t * context)
 {
-    fclose(context->stream);
-    Z_Free(context->readbuffer);
-    Z_Free(context);
+	fclose(context->stream);
+	Z_Free(context->readbuffer);
+	Z_Free(context);
 }
 
 // Reads a single character from a dehacked file
 
-int DEH_GetChar(deh_context_t *context)
+int DEH_GetChar(deh_context_t * context)
 {
-    int result;
-   
-    // Read characters, but ignore carriage returns
-    // Essentially this is a DOS->Unix conversion
+	int result;
 
-    do 
-    {
-        if (feof(context->stream))
-        {
-            // end of file
+	// Read characters, but ignore carriage returns
+	// Essentially this is a DOS->Unix conversion
 
-            result = -1;
-        }
-        else
-        {
-            result = fgetc(context->stream);
-        }
+	do {
+		if (feof(context->stream)) {
+			// end of file
 
-    } while (result == '\r');
+			result = -1;
+		} else {
+			result = fgetc(context->stream);
+		}
 
-    // Track the current line number
+	} while (result == '\r');
 
-    if (context->last_was_newline)
-    {
-        ++context->linenum;
-    }
-    
-    context->last_was_newline = result == '\n';
-    
-    return result;
+	// Track the current line number
+
+	if (context->last_was_newline) {
+		++context->linenum;
+	}
+
+	context->last_was_newline = result == '\n';
+
+	return result;
 }
 
 // Increase the read buffer size
 
-static void IncreaseReadBuffer(deh_context_t *context)
+static void IncreaseReadBuffer(deh_context_t * context)
 {
-    char *newbuffer;
-    int newbuffer_size;
+	char *newbuffer;
+	int newbuffer_size;
 
-    newbuffer_size = context->readbuffer_size * 2;
-    newbuffer = Z_Malloc(newbuffer_size, PU_STATIC, NULL);
+	newbuffer_size = context->readbuffer_size * 2;
+	newbuffer = Z_Malloc(newbuffer_size, PU_STATIC, NULL);
 
-    memcpy(newbuffer, context->readbuffer, context->readbuffer_size);
+	memcpy(newbuffer, context->readbuffer, context->readbuffer_size);
 
-    Z_Free(context->readbuffer);
+	Z_Free(context->readbuffer);
 
-    context->readbuffer = newbuffer;
-    context->readbuffer_size = newbuffer_size;
+	context->readbuffer = newbuffer;
+	context->readbuffer_size = newbuffer_size;
 }
 
 // Read a whole line
 
-char *DEH_ReadLine(deh_context_t *context)
+char *DEH_ReadLine(deh_context_t * context)
 {
-    int c;
-    int pos;
+	int c;
+	int pos;
 
-    for (pos = 0;;)
-    {
-        c = DEH_GetChar(context);
+	for (pos = 0;;) {
+		c = DEH_GetChar(context);
 
-        if (c < 0)
-        {
-            // end of file
+		if (c < 0) {
+			// end of file
 
-            return NULL;
-        }
+			return NULL;
+		}
+		// cope with lines of any length: increase the buffer size
 
-        // cope with lines of any length: increase the buffer size
+		if (pos >= context->readbuffer_size) {
+			IncreaseReadBuffer(context);
+		}
 
-        if (pos >= context->readbuffer_size)
-        {
-            IncreaseReadBuffer(context);
-        }
+		if (c == '\n') {
+			// end of line: a full line has been read
 
-        if (c == '\n')
-        {
-            // end of line: a full line has been read
+			context->readbuffer[pos] = '\0';
+			break;
+		} else if (c != '\0') {
+			// normal character; don't allow NUL characters to be
+			// added.
 
-            context->readbuffer[pos] = '\0';
-            break;
-        }
-        else if (c != '\0')
-        {
-            // normal character; don't allow NUL characters to be
-            // added.
+			context->readbuffer[pos] = (char)c;
+			++pos;
+		}
+	}
 
-            context->readbuffer[pos] = (char) c;
-            ++pos;
-        }
-    }
-    
-    return context->readbuffer;
+	return context->readbuffer;
 }
 
-void DEH_Warning(deh_context_t *context, char *msg, ...)
+void DEH_Warning(deh_context_t * context, char *msg, ...)
 {
-    va_list args;
+	va_list args;
 
-    va_start(args, msg);
-    
-    fprintf(stderr, "%s:%i: warning: ", context->filename, context->linenum);
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
+	va_start(args, msg);
 
-    va_end(args);
+	fprintf(stderr, "%s:%i: warning: ", context->filename,
+		context->linenum);
+	vfprintf(stderr, msg, args);
+	fprintf(stderr, "\n");
+
+	va_end(args);
 }
 
-void DEH_Error(deh_context_t *context, char *msg, ...)
+void DEH_Error(deh_context_t * context, char *msg, ...)
 {
-    va_list args;
+	va_list args;
 
-    va_start(args, msg);
-    
-    fprintf(stderr, "%s:%i: ", context->filename, context->linenum);
-    vfprintf(stderr, msg, args);
-    fprintf(stderr, "\n");
+	va_start(args, msg);
 
-    va_end(args);
+	fprintf(stderr, "%s:%i: ", context->filename, context->linenum);
+	vfprintf(stderr, msg, args);
+	fprintf(stderr, "\n");
 
-    I_Error("Error parsing dehacked file");
+	va_end(args);
+
+	I_Error("Error parsing dehacked file");
 }
-
-

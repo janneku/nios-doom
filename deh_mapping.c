@@ -38,96 +38,96 @@
 // Set the value of a particular field in a structure by name
 //
 
-boolean DEH_SetMapping(deh_context_t *context, deh_mapping_t *mapping, 
-                       void *structptr, char *name, int value)
+boolean DEH_SetMapping(deh_context_t * context, deh_mapping_t * mapping,
+		       void *structptr, char *name, int value)
 {
-    int i;
+	int i;
 
-    for (i=0; mapping->entries[i].name != NULL; ++i)
-    {
-        deh_mapping_entry_t *entry = &mapping->entries[i];
+	for (i = 0; mapping->entries[i].name != NULL; ++i) {
+		deh_mapping_entry_t *entry = &mapping->entries[i];
 
-        if (!strcasecmp(entry->name, name))
-        {
-            void *location;
+		if (!strcasecmp(entry->name, name)) {
+			void *location;
 
-            if (entry->location == NULL)
-            {
-                DEH_Warning(context, "Field '%s' is unsupported", name);
-                return false;
-            }
+			if (entry->location == NULL) {
+				DEH_Warning(context,
+					    "Field '%s' is unsupported", name);
+				return false;
+			}
 
-            location = (uint8_t *)structptr + ((uint8_t *)entry->location - (uint8_t *)mapping->base);
+			location =
+			    (uint8_t *) structptr +
+			    ((uint8_t *) entry->location -
+			     (uint8_t *) mapping->base);
 
-     //       printf("Setting %p::%s to %i (%i bytes)\n",
-     //               structptr, name, value, entry->size);
-                
-            switch (entry->size)
-            {
-                case 1:
-                    * ((uint8_t *) location) = value;
-                    break;
-                case 2:
-                    * ((uint16_t *) location) = value;
-                    break;
-                case 4:
-                    * ((uint32_t *) location) = value;
-                    break;
-                default:
-                    DEH_Error(context, "Unknown field type for '%s' (BUG)", name);
-                    return false;
-            }
+			//       printf("Setting %p::%s to %i (%i bytes)\n",
+			//               structptr, name, value, entry->size);
 
-            return true;
-        }
-    }
+			switch (entry->size) {
+			case 1:
+				*((uint8_t *) location) = value;
+				break;
+			case 2:
+				*((uint16_t *) location) = value;
+				break;
+			case 4:
+				*((uint32_t *) location) = value;
+				break;
+			default:
+				DEH_Error(context,
+					  "Unknown field type for '%s' (BUG)",
+					  name);
+				return false;
+			}
 
-    // field with this name not found
+			return true;
+		}
+	}
 
-    DEH_Warning(context, "Field named '%s' not found", name);
+	// field with this name not found
 
-    return false;
+	DEH_Warning(context, "Field named '%s' not found", name);
+
+	return false;
 }
 
-void DEH_StructMD5Sum(md5_context_t *context, deh_mapping_t *mapping,
-                      void *structptr)
+void DEH_StructMD5Sum(md5_context_t * context, deh_mapping_t * mapping,
+		      void *structptr)
 {
-    int i;
+	int i;
 
-    // Go through each mapping
+	// Go through each mapping
 
-    for (i=0; mapping->entries[i].name != NULL; ++i)
-    {
-        deh_mapping_entry_t *entry = &mapping->entries[i];
-        void *location;
+	for (i = 0; mapping->entries[i].name != NULL; ++i) {
+		deh_mapping_entry_t *entry = &mapping->entries[i];
+		void *location;
 
-        if (entry->location == NULL)
-        {
-            // Unsupported field
+		if (entry->location == NULL) {
+			// Unsupported field
 
-            continue;
-        }
+			continue;
+		}
+		// Add in data for this field
 
-        // Add in data for this field
+		location =
+		    (uint8_t *) structptr + ((uint8_t *) entry->location -
+					     (uint8_t *) mapping->base);
 
-        location = (uint8_t *)structptr + ((uint8_t *)entry->location - (uint8_t *)mapping->base);
-
-        switch (entry->size)
-        {
-            case 1:
-                MD5_UpdateInt32(context, *((uint8_t *) location));
-                break;
-            case 2:
-                MD5_UpdateInt32(context, *((uint16_t *) location));
-                break;
-            case 4:
-                MD5_UpdateInt32(context, *((uint32_t *) location));
-                break;
-            default:
-                I_Error("Unknown dehacked mapping field type for '%s' (BUG)", 
-                        entry->name);
-                break;
-        }
-    }
+		switch (entry->size) {
+		case 1:
+			MD5_UpdateInt32(context, *((uint8_t *) location));
+			break;
+		case 2:
+			MD5_UpdateInt32(context, *((uint16_t *) location));
+			break;
+		case 4:
+			MD5_UpdateInt32(context, *((uint32_t *) location));
+			break;
+		default:
+			I_Error
+			    ("Unknown dehacked mapping field type for '%s' (BUG)",
+			     entry->name);
+			break;
+		}
+	}
 }
-

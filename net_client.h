@@ -32,12 +32,12 @@
 
 #define MAXPLAYERNAME 30
 
-boolean NET_CL_Connect(net_addr_t *addr);
+boolean NET_CL_Connect(net_addr_t * addr);
 void NET_CL_Disconnect(void);
 void NET_CL_Run(void);
 void NET_CL_Init(void);
 void NET_CL_StartGame();
-void NET_CL_SendTiccmd(ticcmd_t *ticcmd, int maketic);
+void NET_CL_SendTiccmd(ticcmd_t * ticcmd, int maketic);
 void NET_Init(void);
 
 extern boolean net_client_connected;
@@ -58,6 +58,4 @@ extern md5_digest_t net_local_wad_md5sum;
 extern md5_digest_t net_local_deh_md5sum;
 extern unsigned int net_local_is_freedoom;
 
-
 #endif /* #ifndef NET_CLIENT_H */
-

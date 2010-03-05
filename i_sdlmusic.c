@@ -20,10 +20,9 @@
 // 02111-1307, USA.
 //
 // DESCRIPTION:
-//	System interface for music.
+//      System interface for music.
 //
 //-----------------------------------------------------------------------------
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -55,70 +54,65 @@ static int current_music_volume;
 // Shutdown music
 
 static void I_SDL_ShutdownMusic(void)
-{    
-    if (music_initialised)
-    {
-        Mix_HaltMusic();
-        music_initialised = false;
+{
+	if (music_initialised) {
+		Mix_HaltMusic();
+		music_initialised = false;
 
-        if (sdl_was_initialised)
-        {
-            Mix_CloseAudio();
-            SDL_QuitSubSystem(SDL_INIT_AUDIO);
-            sdl_was_initialised = false;
-        }
-    }
+		if (sdl_was_initialised) {
+			Mix_CloseAudio();
+			SDL_QuitSubSystem(SDL_INIT_AUDIO);
+			sdl_was_initialised = false;
+		}
+	}
 }
 
 static boolean SDLIsInitialised(void)
 {
-    int freq, channels;
-    Uint16 format;
+	int freq, channels;
+	Uint16 format;
 
-    return Mix_QuerySpec(&freq, &format, &channels) != 0;
+	return Mix_QuerySpec(&freq, &format, &channels) != 0;
 }
 
 // Initialise music subsystem
 
 static boolean I_SDL_InitMusic(void)
-{ 
-    // When trying to run with music enabled on OSX, display
-    // a warning message.
+{
+	// When trying to run with music enabled on OSX, display
+	// a warning message.
 
 #ifdef __APPLE__
-    printf("\n"
-           "                   *** WARNING ***\n"
-           "      Music playback on OSX may cause crashes and\n"
-           "      is disabled by default.\n"
-           "\n");
+	printf("\n"
+	       "                   *** WARNING ***\n"
+	       "      Music playback on OSX may cause crashes and\n"
+	       "      is disabled by default.\n" "\n");
 #endif
-    
-    // If SDL_mixer is not initialised, we have to initialise it 
-    // and have the responsibility to shut it down later on.
 
-    if (!SDLIsInitialised())
-    {
-        if (SDL_Init(SDL_INIT_AUDIO) < 0)
-        {
-            fprintf(stderr, "Unable to set up sound.\n");
-            return false;
-        }
+	// If SDL_mixer is not initialised, we have to initialise it 
+	// and have the responsibility to shut it down later on.
 
-        if (Mix_OpenAudio(snd_samplerate, AUDIO_S16SYS, 2, 1024) < 0)
-        {
-            fprintf(stderr, "Error initialising SDL_mixer: %s\n", Mix_GetError());
-            SDL_QuitSubSystem(SDL_INIT_AUDIO);
-            return false;
-        }
+	if (!SDLIsInitialised()) {
+		if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+			fprintf(stderr, "Unable to set up sound.\n");
+			return false;
+		}
 
-        SDL_PauseAudio(0);
+		if (Mix_OpenAudio(snd_samplerate, AUDIO_S16SYS, 2, 1024) < 0) {
+			fprintf(stderr, "Error initialising SDL_mixer: %s\n",
+				Mix_GetError());
+			SDL_QuitSubSystem(SDL_INIT_AUDIO);
+			return false;
+		}
 
-        sdl_was_initialised = true;
-    }
+		SDL_PauseAudio(0);
 
-    music_initialised = true;
+		sdl_was_initialised = true;
+	}
 
-    return true;
+	music_initialised = true;
+
+	return true;
 }
 
 //
@@ -128,226 +122,200 @@ static boolean I_SDL_InitMusic(void)
 
 static void UpdateMusicVolume(void)
 {
-    int vol;
+	int vol;
 
-    if (musicpaused)
-    {
-        vol = 0;
-    }
-    else
-    {
-        vol = (current_music_volume * MIX_MAX_VOLUME) / 127;
-    }
+	if (musicpaused) {
+		vol = 0;
+	} else {
+		vol = (current_music_volume * MIX_MAX_VOLUME) / 127;
+	}
 
-    Mix_VolumeMusic(vol);
+	Mix_VolumeMusic(vol);
 }
 
 // Set music volume (0 - 127)
 
 static void I_SDL_SetMusicVolume(int volume)
 {
-    // Internal state variable.
-    current_music_volume = volume;
+	// Internal state variable.
+	current_music_volume = volume;
 
-    UpdateMusicVolume();
+	UpdateMusicVolume();
 }
 
 // Start playing a mid
 
 static void I_SDL_PlaySong(void *handle, int looping)
 {
-    Mix_Music *music = (Mix_Music *) handle;
-    int loops;
+	Mix_Music *music = (Mix_Music *) handle;
+	int loops;
 
-    if (!music_initialised)
-    {
-        return;
-    }
+	if (!music_initialised) {
+		return;
+	}
 
-    if (handle == NULL)
-    {
-        return;
-    }
+	if (handle == NULL) {
+		return;
+	}
 
-    if (looping)
-    {
-        loops = -1;
-    }
-    else
-    {
-        loops = 1;
-    }
+	if (looping) {
+		loops = -1;
+	} else {
+		loops = 1;
+	}
 
-    Mix_PlayMusic(music, loops);
+	Mix_PlayMusic(music, loops);
 }
 
 static void I_SDL_PauseSong(void)
 {
-    if (!music_initialised)
-    {
-        return;
-    }
+	if (!music_initialised) {
+		return;
+	}
 
-    musicpaused = true;
+	musicpaused = true;
 
-    UpdateMusicVolume();
+	UpdateMusicVolume();
 }
 
 static void I_SDL_ResumeSong(void)
 {
-    if (!music_initialised)
-    {
-        return;
-    }
+	if (!music_initialised) {
+		return;
+	}
 
-    musicpaused = false;
+	musicpaused = false;
 
-    UpdateMusicVolume();
+	UpdateMusicVolume();
 }
 
 static void I_SDL_StopSong(void)
 {
-    if (!music_initialised)
-    {
-        return;
-    }
+	if (!music_initialised) {
+		return;
+	}
 
-    Mix_HaltMusic();
+	Mix_HaltMusic();
 }
 
 static void I_SDL_UnRegisterSong(void *handle)
 {
-    Mix_Music *music = (Mix_Music *) handle;
+	Mix_Music *music = (Mix_Music *) handle;
 
-    if (!music_initialised)
-    {
-        return;
-    }
+	if (!music_initialised) {
+		return;
+	}
 
-    if (handle == NULL)
-    {
-        return;
-    }
+	if (handle == NULL) {
+		return;
+	}
 
-    Mix_FreeMusic(music);
+	Mix_FreeMusic(music);
 }
 
 // Determine whether memory block is a .mid file 
 
-static boolean IsMid(byte *mem, int len)
+static boolean IsMid(byte * mem, int len)
 {
-    return len > 4 && !memcmp(mem, "MThd", 4);
+	return len > 4 && !memcmp(mem, "MThd", 4);
 }
 
-static boolean ConvertMus(byte *musdata, int len, char *filename)
+static boolean ConvertMus(byte * musdata, int len, char *filename)
 {
-    MEMFILE *instream;
-    MEMFILE *outstream;
-    void *outbuf;
-    size_t outbuf_len;
-    int result;
+	MEMFILE *instream;
+	MEMFILE *outstream;
+	void *outbuf;
+	size_t outbuf_len;
+	int result;
 
-    instream = mem_fopen_read(musdata, len);
-    outstream = mem_fopen_write();
+	instream = mem_fopen_read(musdata, len);
+	outstream = mem_fopen_write();
 
-    result = mus2mid(instream, outstream);
+	result = mus2mid(instream, outstream);
 
-    if (result == 0)
-    {
-        mem_get_buf(outstream, &outbuf, &outbuf_len);
+	if (result == 0) {
+		mem_get_buf(outstream, &outbuf, &outbuf_len);
 
-        M_WriteFile(filename, outbuf, outbuf_len);
-    }
+		M_WriteFile(filename, outbuf, outbuf_len);
+	}
 
-    mem_fclose(instream);
-    mem_fclose(outstream);
+	mem_fclose(instream);
+	mem_fclose(outstream);
 
-    return result;
+	return result;
 }
 
 static void *I_SDL_RegisterSong(void *data, int len)
 {
-    char *filename;
-    Mix_Music *music;
+	char *filename;
+	Mix_Music *music;
 
-    if (!music_initialised)
-    {
-        return NULL;
-    }
-    
-    // MUS files begin with "MUS"
-    // Reject anything which doesnt have this signature
-    
-    filename = M_TempFile("doom.mid");
+	if (!music_initialised) {
+		return NULL;
+	}
+	// MUS files begin with "MUS"
+	// Reject anything which doesnt have this signature
 
-    if (IsMid(data, len) && len < MAXMIDLENGTH)
-    {
-        M_WriteFile(filename, data, len);
-    }
-    else 
-    {
-	// Assume a MUS file and try to convert
+	filename = M_TempFile("doom.mid");
 
-        ConvertMus(data, len, filename);
-    }
+	if (IsMid(data, len) && len < MAXMIDLENGTH) {
+		M_WriteFile(filename, data, len);
+	} else {
+		// Assume a MUS file and try to convert
 
-    // Load the MIDI
+		ConvertMus(data, len, filename);
+	}
 
-    music = Mix_LoadMUS(filename);
-    
-    if (music == NULL)
-    {
-        // Failed to load
+	// Load the MIDI
 
-        fprintf(stderr, "Error loading midi: %s\n", Mix_GetError());
-    }
+	music = Mix_LoadMUS(filename);
 
-    // remove file now
+	if (music == NULL) {
+		// Failed to load
 
-    remove(filename);
+		fprintf(stderr, "Error loading midi: %s\n", Mix_GetError());
+	}
+	// remove file now
 
-    Z_Free(filename);
+	remove(filename);
 
-    return music;
+	Z_Free(filename);
+
+	return music;
 }
 
 // Is the song playing?
 static boolean I_SDL_MusicIsPlaying(void)
 {
-    if (!music_initialised)
-    {
-        return false;
-    }
+	if (!music_initialised) {
+		return false;
+	}
 
-    return Mix_PlayingMusic();
+	return Mix_PlayingMusic();
 }
 
-static snddevice_t music_sdl_devices[] =
-{
-    SNDDEVICE_ADLIB,
-    SNDDEVICE_SB,
-    SNDDEVICE_PAS,
-    SNDDEVICE_GUS,
-    SNDDEVICE_WAVEBLASTER,
-    SNDDEVICE_SOUNDCANVAS,
-    SNDDEVICE_GENMIDI,
-    SNDDEVICE_AWE32,
+static snddevice_t music_sdl_devices[] = {
+	SNDDEVICE_ADLIB,
+	SNDDEVICE_SB,
+	SNDDEVICE_PAS,
+	SNDDEVICE_GUS,
+	SNDDEVICE_WAVEBLASTER,
+	SNDDEVICE_SOUNDCANVAS,
+	SNDDEVICE_GENMIDI,
+	SNDDEVICE_AWE32,
 };
 
-music_module_t music_sdl_module =
-{
-    music_sdl_devices,
-    arrlen(music_sdl_devices),
-    I_SDL_InitMusic,
-    I_SDL_ShutdownMusic,
-    I_SDL_SetMusicVolume,
-    I_SDL_PauseSong,
-    I_SDL_ResumeSong,
-    I_SDL_RegisterSong,
-    I_SDL_UnRegisterSong,
-    I_SDL_PlaySong,
-    I_SDL_StopSong,
-    I_SDL_MusicIsPlaying,
+music_module_t music_sdl_module = {
+	music_sdl_devices,
+	arrlen(music_sdl_devices),
+	I_SDL_InitMusic,
+	I_SDL_ShutdownMusic,
+	I_SDL_SetMusicVolume,
+	I_SDL_PauseSong,
+	I_SDL_ResumeSong,
+	I_SDL_RegisterSong,
+	I_SDL_UnRegisterSong,
+	I_SDL_PlaySong,
+	I_SDL_StopSong,
+	I_SDL_MusicIsPlaying,
 };
-
-
