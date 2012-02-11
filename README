@@ -1,0 +1,13 @@
+Doom port for Nios
+Developed for Altera DE2 FPGA board
+
+Designed to be a bootable binary, and the data and the binary are loaded
+from SD card. Can be executed with the bootloader available from
+https://github.com/japeq/nios-bootloader.
+
+Copyright 2011 Janne Kulmala <janne.t.kulmala@iki.fi>,
+Juho Järvinen <juho.jarvinen@tut.fi>
+
+Based on Chocolate Doom, which is distributed under the GNU GPL.  See 
+the COPYING.GPL file for more information.
+
